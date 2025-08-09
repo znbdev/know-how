@@ -51,6 +51,7 @@ Terminology
 | 限流    | 制限              | Rate Limiting                |
 | 熔断    | 熔断              | Circuit Breaker              |
 | 降级    | 降下              | Degradation                  |
+| 存储库  | リポジトリ          | Repository                   |
 
 
 

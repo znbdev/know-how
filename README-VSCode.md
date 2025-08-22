@@ -66,3 +66,30 @@ VSCode
 - **新建终端**: `Ctrl + Shift + ~`
 - **切换终端**: `Ctrl + ``
 - **清除终端**: `Ctrl + K` (在终端中)
+
+# 扩展插件
+
+- **GitLens**: 提供强大的 Git 功能，如代码作者、行历史记录等。
+- **Git Graph**: 以图形方式查看 Git 提交历史。
+- **Prettier - Code formatter**: 自动格式化代码，保持代码风格一致。
+- **ESLint**: JavaScript 代码检查工具。
+- **Markdown Preview Enhanced**: Markdown 预览扩展，提供实时预览、数学公式、代码块等。
+- **Markdownlint**: Markdown 代码检查工具。
+- **Google Translate**: 在 VSCode 中使用 Google 翻译。自动语言互译 Ctrl + Shift + T / command + shift + t
+- **Chinese (Simplified) Language Pack for Visual Studio Code**: 中文语言包，提供中文界面。
+- **Comment Translate**: 注释翻译，支持多种编程语言。
+- **Code Spell Checker**: 代码拼写检查。
+- **Live Server**: 本地服务器，用于预览 HTML 文件。
+
+## 其他
+
+- **Git History Diff**: 查看 Git 提交差异。
+- **GitLens**: 提供强大的 Git 功能，如代码作者、行历史记录等。
+- **Git History**: 查看 Git 提交历史。
+- **Live Share**: 实时共享代码和调试，适合团队协作。
+- **Bracket Pair Colorizer 2**: 为括号对添加颜色，方便匹配括号。
+- **Auto Rename Tag**: 自动重命名匹配的 HTML 标签。
+- **Auto Close Tag**: 自动关闭 HTML 标签。
+- **Auto Import**: 自动导入模块和类。
+- **Path Intellisense**: 自动补全文件路径。
+- **i18n Ally**: 国际化支持，支持多种语言。

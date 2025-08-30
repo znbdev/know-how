@@ -176,6 +176,12 @@ sequenceDiagram
     * （可选）SSO Server 可以通知其他已登录的应用进行登出（例如通过 back-channel logout）。
     * 系统 A 完成本地登出。
 
+# TODO
+
+- [x] Write a report [3]
+- [ ] Read related information [3]
+- [ ] Submit code review [3]
+
 # Reference
 
 [Basic writing and formatting syntax](https://docs.github.com/cn/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)

@@ -5,7 +5,7 @@ Mermaid 是一个用于绘制图表的开源工具。它使用 Markdown 语法�
 
 # Examples
 
-### ER图（实体关系图）
+### Entity-Relationship Diagram (ERD) ER图（实体关系图）
 
 ```mermaid
 erDiagram

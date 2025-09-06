@@ -1,3 +1,4 @@
+```mermaid
 erDiagram
 %%--------------------------------------------------
 %%                  实体和属性定义
@@ -72,3 +73,4 @@ string address "地址"
     STUDENT }|--|{ COURSE : registers for
 
     EMPLOYEE ||--o{ EMPLOYEE : manages
+```

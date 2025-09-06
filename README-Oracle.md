@@ -282,10 +282,5 @@ CREATE INDEX idx_employee_salary ON employees(salary);
 -- 删除表
 DROP TABLE employees;
 ```
-# Reference
-```
-
-# Reference
-```
 
 # Reference

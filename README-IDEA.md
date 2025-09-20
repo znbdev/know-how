@@ -86,3 +86,6 @@ IDEA
 
 ### macOS 快捷键：
 在 macOS 上，`Ctrl` 通常会被替换为 `Cmd`，`Alt` 替换为 `Option`，其他的快捷键逻辑基本相同。
+
+### Intellij IDEA Environment variables setting
+e.g. `spring.profiles.active=dev;server.port=8081`

@@ -1,0 +1,53 @@
+Sub ExtractIFConditions()
+    Dim ws As Worksheet
+    Dim cell As Range
+    Dim resultWs As Worksheet
+    Dim resultRow As Long
+    Dim formulaText As String
+    Dim condition As String
+    Dim startPos As Long, commaPos As Long
+    
+    ' Create (or clear) result sheet
+    On Error Resume Next
+    Set resultWs = ThisWorkbook.Sheets("IF_Conditions")
+    If resultWs Is Nothing Then
+        Set resultWs = ThisWorkbook.Sheets.Add
+        resultWs.Name = "IF_Conditions"
+    End If
+    On Error GoTo 0
+    resultWs.Cells.Clear
+    
+    resultWs.Range("A1").Value = "Sheet"
+    resultWs.Range("B1").Value = "Cell"
+    resultWs.Range("C1").Value = "Condition"
+    resultRow = 2
+    
+    ' Loop through all sheets
+    For Each ws In ThisWorkbook.Sheets
+        If ws.Name <> resultWs.Name Then
+            For Each cell In ws.UsedRange
+                If cell.HasFormula Then
+                    formulaText = cell.Formula
+                    If InStr(1, formulaText, "IF(", vbTextCompare) > 0 Then
+                        ' Extract first IF condition part
+                        startPos = InStr(1, formulaText, "IF(") + 3
+                        commaPos = InStr(startPos, formulaText, ",")
+                        If commaPos > startPos Then
+                            condition = Mid(formulaText, startPos, commaPos - startPos)
+                        Else
+                            condition = "Not recognized"
+                        End If
+                        
+                        ' Write result
+                        resultWs.Cells(resultRow, 1).Value = ws.Name
+                        resultWs.Cells(resultRow, 2).Value = cell.Address
+                        resultWs.Cells(resultRow, 3).Value = condition
+                        resultRow = resultRow + 1
+                    End If
+                End If
+            Next cell
+        End If
+    Next ws
+    
+    MsgBox "Extraction complete! See 'IF_Conditions' sheet."
+End Sub

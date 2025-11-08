@@ -1,4 +1,8 @@
-Sub ExtractIFConditions()
+''''''''''''''''''''''''''''''''''''''''''''''''''
+' ExtractIfConditions
+''''''''''''''''''''''''''''''''''''''''''''''''''
+Option Explicit
+Sub ExtractIfConditions()
     Dim ws As Worksheet
     Dim cell As Range
     Dim resultWs As Worksheet

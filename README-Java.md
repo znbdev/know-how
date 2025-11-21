@@ -136,6 +136,107 @@ class OrderService {
 
 ---
 
+```java
+// ----------------------- 1. 接口 (Interface) -----------------------
+// 接口定义了一种“能力”或“契约”：任何实现该接口的类都必须具备燃料消耗的能力。
+public interface FuelConsumable {
+
+    // 抽象方法：定义了行为规范，但没有实现。
+    // 任何实现该接口的类必须实现此方法。
+    double calculateFuelEfficiency(double distance, double fuelUsed); 
+    
+    // Java 8 引入的默认方法：提供一个默认实现，子类可以选择性地重写。
+    default void refill() {
+        System.out.println("燃料箱正在加注燃料...");
+    }
+}
+
+// ----------------------- 2. 抽象类 (Abstract Class) -----------------------
+// 抽象类定义了一个“类族”的通用结构和行为骨架。
+public abstract class AbstractVehicle {
+
+    // 成员变量：抽象类可以有实例变量（维护状态）
+    private String model;
+    private int maxSpeed;
+
+    // 构造器：抽象类可以有构造器，用于初始化通用属性
+    public AbstractVehicle(String model, int maxSpeed) {
+        this.model = model;
+        this.maxSpeed = maxSpeed;
+        System.out.println("创建了型号为 " + model + " 的抽象交通工具。");
+    }
+
+    // 普通方法：有具体实现的方法，供子类直接继承和复用
+    public void startEngine() {
+        System.out.println(model + " 引擎启动，准备就绪。");
+    }
+
+    // 抽象方法：定义了行为规范，但没有实现。
+    // 任何非抽象子类必须实现此方法。
+    public abstract void drive();
+    
+    // Getter 方法
+    public String getModel() {
+        return model;
+    }
+    public int getMaxSpeed() {
+        return maxSpeed;
+    }
+}
+
+// ----------------------- 3. 实现类 (Concrete Class) -----------------------
+// 具体的汽车类，它：
+// 1. 继承 (extends) 抽象类 AbstractVehicle，获得了通用属性和方法。
+// 2. 实现 (implements) 接口 FuelConsumable，获得了燃料消耗的能力。
+public class Car extends AbstractVehicle implements FuelConsumable {
+
+    private int passengerCount;
+
+    // 继承父类的构造器
+    public Car(String model, int maxSpeed, int passengerCount) {
+        super(model, maxSpeed); // 调用父类构造器初始化 model 和 maxSpeed
+        this.passengerCount = passengerCount;
+    }
+
+    // 必须实现：继承自 AbstractVehicle 的抽象方法
+    @Override
+    public void drive() {
+        System.out.println(getModel() + " 正在以最高时速 " + getMaxSpeed() + " km/h 的速度行驶，载客 " + passengerCount + " 人。");
+    }
+
+    // 必须实现：继承自 FuelConsumable 接口的抽象方法
+    @Override
+    public double calculateFuelEfficiency(double distance, double fuelUsed) {
+        double efficiency = distance / fuelUsed;
+        System.out.println(getModel() + " 的燃油效率为: " + String.format("%.2f", efficiency) + " km/L");
+        return efficiency;
+    }
+    
+    // (可选) 可以重写接口的默认方法，这里选择不重写，使用默认实现
+}
+
+// ----------------------- 4. 测试类 (Main Method) -----------------------
+public class Main {
+public static void main(String[] args) {
+// 多态的应用：使用抽象类型引用具体对象
+// 接口引用
+FuelConsumable myFuelVehicle = new Car("Toyota Camry", 220, 4);
+// 抽象类引用
+AbstractVehicle myVehicle = (AbstractVehicle) myFuelVehicle;
+
+        System.out.println("--- 抽象类方法调用（通用行为） ---");
+        myVehicle.startEngine(); // 调用继承自抽象类的普通方法
+        myVehicle.drive();      // 调用继承自抽象类，但在子类中实现的方法
+        
+        System.out.println("\n--- 接口方法调用（能力/契约） ---");
+        myFuelVehicle.calculateFuelEfficiency(500, 40); // 调用接口中要求实现的方法
+        myFuelVehicle.refill(); // 调用接口中提供的默认方法
+    }
+}
+```
+
+---
+
 # Reference
 
 - [Archived OpenJDK General-Availability Releases](https://jdk.java.net/archive/)

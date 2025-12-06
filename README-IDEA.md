@@ -87,5 +87,30 @@ IDEA
 ### macOS 快捷键：
 在 macOS 上，`Ctrl` 通常会被替换为 `Cmd`，`Alt` 替换为 `Option`，其他的快捷键逻辑基本相同。
 
-### Intellij IDEA Environment variables setting
+#  Intellij IDEA setting
+
+### Environment variables setting
 e.g. `spring.profiles.active=dev;server.port=8081`
+
+# Plugins
+
+### AI Code Assistant
+- [Lingma - Alibaba Cloud AI Coding Assistant](https://plugins.jetbrains.com/plugin/17809-lingma--alibaba-cloud-ai-coding-assistant)
+- [Tencent Cloud CodeBuddy](https://plugins.jetbrains.com/plugin/24379-tencent-cloud-codebuddy)
+- [GitHub Copilot - Your AI Pair Programmer](https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer)
+- [Fitten Code:Faster and Better AI Assistant](https://plugins.jetbrains.com/plugin/23640-fitten-code-faster-and-better-ai-assistant)
+
+### Language Pack
+- [Chinese(Simplified)Language Pack / 中文语言包](https://plugins.jetbrains.com/plugin/13710-chinese-simplified-language-pack----)
+- [Japanese Language Pack / 日本語言語パック](https://plugins.jetbrains.com/plugin/13964-japanese-language-pack------)
+- [Translation](https://plugins.jetbrains.com/plugin/8579-translation)
+
+### Code
+- [GitToolBox](https://plugins.jetbrains.com/plugin/7499-gittoolbox)
+- [JPA Buddy](https://plugins.jetbrains.com/plugin/15075-jpa-buddy)
+- [Key Promoter X](https://plugins.jetbrains.com/plugin/9792-key-promoter-x)
+- [Lombok](https://plugins.jetbrains.com/plugin/6317-lombok)
+- [Scala](https://plugins.jetbrains.com/plugin/1347-scala)
+
+### Database
+- [Database Navigator](https://plugins.jetbrains.com/plugin/1800-database-navigator)

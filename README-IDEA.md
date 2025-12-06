@@ -99,6 +99,7 @@ e.g. `spring.profiles.active=dev;server.port=8081`
 - [Tencent Cloud CodeBuddy](https://plugins.jetbrains.com/plugin/24379-tencent-cloud-codebuddy)
 - [GitHub Copilot - Your AI Pair Programmer](https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer)
 - [Fitten Code:Faster and Better AI Assistant](https://plugins.jetbrains.com/plugin/23640-fitten-code-faster-and-better-ai-assistant)
+- [Gemini Code Assist](https://plugins.jetbrains.com/plugin/24198-gemini-code-assist)
 
 ### Language Pack
 - [Chinese(Simplified)Language Pack / 中文语言包](https://plugins.jetbrains.com/plugin/13710-chinese-simplified-language-pack----)
@@ -114,3 +115,6 @@ e.g. `spring.profiles.active=dev;server.port=8081`
 
 ### Database
 - [Database Navigator](https://plugins.jetbrains.com/plugin/1800-database-navigator)
+
+### Document
+- [Mermaid](https://plugins.jetbrains.com/plugin/20146-mermaid)

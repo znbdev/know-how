@@ -100,6 +100,7 @@ e.g. `spring.profiles.active=dev;server.port=8081`
 - [GitHub Copilot - Your AI Pair Programmer](https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer)
 - [Fitten Code:Faster and Better AI Assistant](https://plugins.jetbrains.com/plugin/23640-fitten-code-faster-and-better-ai-assistant)
 - [Gemini Code Assist](https://plugins.jetbrains.com/plugin/24198-gemini-code-assist)
+- [JetBrains AI Assistant](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant)
 
 ### Language Pack
 - [Chinese(Simplified)Language Pack / 中文语言包](https://plugins.jetbrains.com/plugin/13710-chinese-simplified-language-pack----)
@@ -112,6 +113,7 @@ e.g. `spring.profiles.active=dev;server.port=8081`
 - [Key Promoter X](https://plugins.jetbrains.com/plugin/9792-key-promoter-x)
 - [Lombok](https://plugins.jetbrains.com/plugin/6317-lombok)
 - [Scala](https://plugins.jetbrains.com/plugin/1347-scala)
+- [Rainbow Brackets](https://plugins.jetbrains.com/plugin/10080-rainbow-brackets)
 
 ### Database
 - [Database Navigator](https://plugins.jetbrains.com/plugin/1800-database-navigator)

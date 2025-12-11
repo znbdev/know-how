@@ -1,4 +1,3 @@
-Attribute VB_Name = "AutoCreatePivotTables"
 Sub CreatePivotTables()
     Dim ws As Worksheet
     Dim ptCache As PivotCache
@@ -137,10 +136,60 @@ Sub CreatePivotTables()
         On Error GoTo ErrorHandler
     End With
     
-    ' Create charts
-    CreatePivotCharts ptSheet
+    ' Get Report Data worksheet
+    On Error Resume Next
+    Set ws = Sheets("Report Data")
+    On Error GoTo ErrorHandler
     
-    MsgBox "Pivot tables and charts have been successfully created!", vbInformation
+    If Not ws Is Nothing Then
+        ' Get the last row and column of data
+        lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+        
+        ' Check if there is data
+        If lastRow >= 2 Then
+            ' Define data range
+            dataRange = "Report Data!R1C1:R" & lastRow & "C7"  ' A1:G for 7 columns
+            
+            ' Create the fourth pivot table - Count tasks by owner in Report Data
+            On Error Resume Next
+            Set ptCache = ActiveWorkbook.PivotCaches.Create( _
+                SourceType:=xlDatabase, _
+                SourceData:=dataRange)
+            
+            If ptCache Is Nothing Then
+                Set ptCache = ActiveWorkbook.PivotCaches.Create( _
+                    SourceType:=xlWorksheet, _
+                    SourceData:=dataRange)
+            End If
+            
+            On Error GoTo ErrorHandler
+            Set ptTable = ptCache.CreatePivotTable( _
+                TableDestination:=ptSheet.Range("E15"), _
+                TableName:="PivotByReportOwner")
+                
+            With ptTable
+                On Error Resume Next
+                ' Set row field to owner
+                .PivotFields("Owner").Orientation = xlRowField
+                .PivotFields("Owner").Position = 1
+                
+                ' Set data field to task count
+                .AddDataField .PivotFields("Task ID"), "Count of Tasks", xlCount
+                On Error GoTo ErrorHandler
+            End With
+        End If
+    End If
+    
+    ' Create charts
+    On Error Resume Next
+    CreatePivotCharts ptSheet
+    If Err.Number <> 0 Then
+        MsgBox "Pivot tables created successfully, but charts creation had issues. " & _
+               "You can create charts manually from the pivot tables.", vbExclamation
+    Else
+        MsgBox "Pivot tables and charts have been successfully created!", vbInformation
+    End If
+    On Error GoTo ErrorHandler
     Exit Sub
     
 ErrorHandler:
@@ -153,29 +202,75 @@ Sub CreatePivotCharts(ptSheet As Worksheet)
     On Error GoTo ChartErrorHandler
     
     Dim chartObj As ChartObject
+    Dim ptTable As PivotTable
+    Dim dataRange As Range
     
     ' Create project task statistics chart
-    Set chartObj = ptSheet.ChartObjects.Add(Left:=300, Top:=50, Width:=300, Height:=200)
-    With chartObj.Chart
-        .SetSourceData ptSheet.Range("A1:B10")
-        .ChartType = xlColumnClustered
-        .HasTitle = True
-        .ChartTitle.Text = "Project Task Statistics"
-    End With
+    On Error Resume Next
+    Set ptTable = ptSheet.PivotTables("PivotByProject")
+    If Not ptTable Is Nothing Then
+        Set dataRange = ptTable.TableRange1
+        Set chartObj = ptSheet.ChartObjects.Add(Left:=300, Top:=50, Width:=300, Height:=200)
+        With chartObj.Chart
+            .SetSourceData dataRange
+            .ChartType = xlColumnClustered
+            .HasTitle = True
+            .ChartTitle.Text = "Project Task Statistics"
+            .HasLegend = True
+        End With
+    End If
     
     ' Create status task statistics chart
-    Set chartObj = ptSheet.ChartObjects.Add(Left:=300, Top:=300, Width:=300, Height:=200)
-    With chartObj.Chart
-        .SetSourceData ptSheet.Range("A15:B25")
-        .ChartType = xlPie
-        .HasTitle = True
-        .ChartTitle.Text = "Status Task Statistics"
-    End With
+    On Error Resume Next
+    Set ptTable = ptSheet.PivotTables("PivotByStatus")
+    If Not ptTable Is Nothing Then
+        Set dataRange = ptTable.TableRange1
+        Set chartObj = ptSheet.ChartObjects.Add(Left:=300, Top:=300, Width:=300, Height:=200)
+        With chartObj.Chart
+            .SetSourceData dataRange
+            .ChartType = xlPie
+            .HasTitle = True
+            .ChartTitle.Text = "Status Task Statistics"
+            .HasLegend = True
+        End With
+    End If
     
+    ' Create owner task statistics chart
+    On Error Resume Next
+    Set ptTable = ptSheet.PivotTables("PivotByOwner")
+    If Not ptTable Is Nothing Then
+        Set dataRange = ptTable.TableRange1
+        Set chartObj = ptSheet.ChartObjects.Add(Left:=600, Top:=50, Width:=300, Height:=200)
+        With chartObj.Chart
+            .SetSourceData dataRange
+            .ChartType = xlBarClustered
+            .HasTitle = True
+            .ChartTitle.Text = "Tasks by Owner"
+            .HasLegend = True
+        End With
+    End If
+    
+    ' Create owner task statistics chart from Report Data
+    On Error Resume Next
+    Set ptTable = ptSheet.PivotTables("PivotByReportOwner")
+    If Not ptTable Is Nothing Then
+        Set dataRange = ptTable.TableRange1
+        Set chartObj = ptSheet.ChartObjects.Add(Left:=600, Top:=300, Width:=300, Height:=200)
+        With chartObj.Chart
+            .SetSourceData dataRange
+            .ChartType = xlBarClustered
+            .HasTitle = True
+            .ChartTitle.Text = "Tasks by Owner (Report Data)"
+            .HasLegend = True
+        End With
+    End If
+    
+    On Error GoTo 0
     Exit Sub
     
 ChartErrorHandler:
-    MsgBox "Warning: Could not create charts. You can create them manually if needed.", vbExclamation
+    MsgBox "Warning: Could not create charts. Error: " & Err.Description & vbCrLf & _
+           "You can create them manually from the pivot tables if needed.", vbExclamation
 End Sub
 
 ' Auto-run function - Automatically create pivot tables when the workbook opens

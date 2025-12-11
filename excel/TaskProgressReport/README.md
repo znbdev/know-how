@@ -69,3 +69,10 @@ Task Progress Report
 * **筛选与排序 (Filter & Sort):** 必须支持按负责人、日期、状态或影响等级快速查找和分析数据。
 
 ---
+
+## 🚀 Run
+
+```shell
+python -m pip install pandas xlsxwriter
+python TaskProgressReport.py
+```

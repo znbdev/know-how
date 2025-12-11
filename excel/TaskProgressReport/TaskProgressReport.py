@@ -81,15 +81,21 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
     percentage_format = workbook.add_format({'num_format': '0.00%'})
     sheet1.set_column('J:J', None, percentage_format)
 
-    # ===== 4. Chart display =====
+    # ===== 4. Instructions for Pivot Tables =====
     # Note: xlsxwriter does not support creating pivot tables directly
-    # Can be manually created in Excel or using pandas/openpyxl
-    chart_sheet = workbook.add_worksheet("Chart Summary")
+    # VBA macro script is provided to automatically create pivot tables
+    chart_sheet = workbook.add_worksheet("Instructions")
     
     # Add descriptive text
-    chart_sheet.write('A1', 'Chart Instructions:')
+    chart_sheet.write('A1', 'Instructions:')
     chart_sheet.write('A2', '1. This workbook does not contain auto-generated pivot tables')
-    chart_sheet.write('A3', '2. Pivot tables can be manually created using Insert -> PivotTable in Excel')
-    chart_sheet.write('A4', '3. Percentage format has been correctly set in the progress column')
+    chart_sheet.write('A3', '2. To automatically create pivot tables:')
+    chart_sheet.write('A4', '   a. Press Alt + F11 to open VBA editor')
+    chart_sheet.write('A5', '   b. Insert -> Module')
+    chart_sheet.write('A6', '   c. Copy and paste the AutoCreatePivotTables.bas script')
+    chart_sheet.write('A7', '   d. Run the CreatePivotTables subroutine')
+    chart_sheet.write('A8', '   For Chinese version, use AutoCreatePivotTables_zh.bas')
+    chart_sheet.write('A9', '3. Alternatively, pivot tables can be manually created using Insert -> PivotTable in Excel')
+    chart_sheet.write('A10', '4. Percentage format has been correctly set in the progress column')
 
 print("Excel file successfully generated: ", output_file)

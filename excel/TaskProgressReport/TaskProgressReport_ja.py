@@ -67,7 +67,7 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
 
     # ===== 1. 遅延日数の自動計算 =====
     for row in range(2, 501):
-        formula = f'=IF(I{row}="完了",0, IF(TODAY()>F{row}, TODAY()-F{row}, 0))'
+        formula = f'=IF(I{row}="完了","", IF(OR(F{row}="", F{row}=0), "", IF(TODAY()>F{row}, TODAY()-F{row}, "")))'
         sheet1.write_formula(row-1, 13, formula)  # 列N (遅延日数)
 
     # ===== 2. ステータスの自動更新（ロジックに基づく） =====

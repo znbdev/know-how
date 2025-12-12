@@ -67,7 +67,7 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
 
     # ===== 1. Auto-calculate overdue days =====
     for row in range(2, 501):
-        formula = f'=IF(I{row}="Completed",0, IF(TODAY()>F{row}, TODAY()-F{row}, 0))'
+        formula = f'=IF(I{row}="Completed","", IF(OR(F{row}="", F{row}=0), "", IF(TODAY()>F{row}, TODAY()-F{row}, "")))'
         sheet1.write_formula(row-1, 13, formula)  # Column N (Overdue Days)
 
     # ===== 2. Auto-update status (based on logic) =====

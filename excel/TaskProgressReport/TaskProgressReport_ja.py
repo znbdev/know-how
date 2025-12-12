@@ -28,6 +28,7 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
     df_issue.to_excel(writer, sheet_name="問題追跡", index=False)
 
     sheet1 = writer.sheets["タスクマスターリスト"]
+    sheet2 = writer.sheets["レポートデータ"]
     sheet3 = writer.sheets["問題追跡"]
 
     # ドロップダウン用の非表示シート
@@ -36,23 +37,33 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
     yesno_list = ["はい", "いいえ"]
     impact_list = ["高", "中", "低"]
     solve_status_list = ["保留中", "解決中", "解決済み"]
+    owner_list = ["佐藤", "鈴木", "高橋", "田中", "伊藤", "渡辺", "山本", "中村", "小林", "加藤"]
+    resolver_list = ["佐藤", "鈴木", "高橋", "田中", "伊藤", "渡辺", "山本", "中村", "小林", "加藤"]
 
     for i, v in enumerate(status_list): hidden.write(i,0,v)
     for i, v in enumerate(yesno_list): hidden.write(i,1,v)
     for i, v in enumerate(impact_list): hidden.write(i,2,v)
     for i, v in enumerate(solve_status_list): hidden.write(i,3,v)
+    for i, v in enumerate(owner_list): hidden.write(i,4,v)
+    for i, v in enumerate(resolver_list): hidden.write(i,5,v)
 
     workbook.define_name("status_list", "=リスト!$A$1:$A$5")
     workbook.define_name("yesno_list", "=リスト!$B$1:$B$2")
     workbook.define_name("impact_list", "=リスト!$C$1:$C$3")
     workbook.define_name("solve_status_list", "=リスト!$D$1:$D$3")
+    workbook.define_name("owner_list", "=リスト!$E$1:$E$10")
+    workbook.define_name("resolver_list", "=リスト!$F$1:$F$10")
 
     # ドロップダウン検証
-    sheet1.data_validation("I2:I500", {"validate":"list","source":"=status_list"})
-    sheet1.data_validation("K2:K500", {"validate":"list","source":"=yesno_list"})
-    sheet1.data_validation("L2:L500", {"validate":"list","source":"=impact_list"})
-    sheet3.data_validation("F2:F500", {"validate":"list","source":"=impact_list"})
-    sheet3.data_validation("H2:H500", {"validate":"list","source":"=solve_status_list"})
+    sheet1.data_validation("I2:I500", {"validate":"list","source":"=status_list"})      # ステータス
+    sheet1.data_validation("C2:C500", {"validate":"list","source":"=owner_list"})       # 担当者（タスクマスターリスト）
+    sheet1.data_validation("K2:K500", {"validate":"list","source":"=yesno_list"})       # 問題あり
+    sheet1.data_validation("L2:L500", {"validate":"list","source":"=impact_list"})      # 問題影響度
+    sheet1.data_validation("M2:M500", {"validate":"list","source":"=resolver_list"})   # 問題解決者（タスクマスターリスト）
+    sheet2.data_validation("C2:C500", {"validate":"list","source":"=owner_list"})       # 担当者（レポートデータ）
+    sheet3.data_validation("F2:F500", {"validate":"list","source":"=impact_list"})      # 影響度（問題追跡）
+    sheet3.data_validation("H2:H500", {"validate":"list","source":"=solve_status_list"}) # 解決状況（問題追跡）
+    sheet3.data_validation("I2:I500", {"validate":"list","source":"=resolver_list"})   # 解決者（問題追跡）
 
     # ===== 1. 遅延日数の自動計算 =====
     for row in range(2, 501):

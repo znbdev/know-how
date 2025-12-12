@@ -28,6 +28,7 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
     df_issue.to_excel(writer, sheet_name="Issue Tracking", index=False)
 
     sheet1 = writer.sheets["Task Master List"]
+    sheet2 = writer.sheets["Report Data"]
     sheet3 = writer.sheets["Issue Tracking"]
 
     # Hidden sheet for dropdowns
@@ -36,23 +37,33 @@ with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
     yesno_list = ["Yes", "No"]
     impact_list = ["High", "Medium", "Low"]
     solve_status_list = ["Pending", "In Progress", "Resolved"]
+    owner_list = ["Alice", "Bob", "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Iris", "Jack"]
+    resolver_list = ["Alice", "Bob", "Charlie", "David", "Emma", "Frank", "Grace", "Henry", "Iris", "Jack"]
 
     for i, v in enumerate(status_list): hidden.write(i,0,v)
     for i, v in enumerate(yesno_list): hidden.write(i,1,v)
     for i, v in enumerate(impact_list): hidden.write(i,2,v)
     for i, v in enumerate(solve_status_list): hidden.write(i,3,v)
+    for i, v in enumerate(owner_list): hidden.write(i,4,v)
+    for i, v in enumerate(resolver_list): hidden.write(i,5,v)
 
     workbook.define_name("status_list", "=lists!$A$1:$A$5")
     workbook.define_name("yesno_list", "=lists!$B$1:$B$2")
     workbook.define_name("impact_list", "=lists!$C$1:$C$3")
     workbook.define_name("solve_status_list", "=lists!$D$1:$D$3")
+    workbook.define_name("owner_list", "=lists!$E$1:$E$10")
+    workbook.define_name("resolver_list", "=lists!$F$1:$F$10")
 
     # Dropdown validations
-    sheet1.data_validation("I2:I500", {"validate":"list","source":"=status_list"})
-    sheet1.data_validation("K2:K500", {"validate":"list","source":"=yesno_list"})
-    sheet1.data_validation("L2:L500", {"validate":"list","source":"=impact_list"})
-    sheet3.data_validation("F2:F500", {"validate":"list","source":"=impact_list"})
-    sheet3.data_validation("H2:H500", {"validate":"list","source":"=solve_status_list"})
+    sheet1.data_validation("I2:I500", {"validate":"list","source":"=status_list"})  # Status
+    sheet1.data_validation("C2:C500", {"validate":"list","source":"=owner_list"})   # Owner (Task Master List)
+    sheet1.data_validation("K2:K500", {"validate":"list","source":"=yesno_list"})   # Has Issue
+    sheet1.data_validation("L2:L500", {"validate":"list","source":"=impact_list"})  # Issue Impact Level
+    sheet1.data_validation("M2:M500", {"validate":"list","source":"=resolver_list"}) # Issue Resolver (Task Master List)
+    sheet2.data_validation("C2:C500", {"validate":"list","source":"=owner_list"})   # Owner (Report Data)
+    sheet3.data_validation("F2:F500", {"validate":"list","source":"=impact_list"})  # Impact Level (Issue Tracking)
+    sheet3.data_validation("H2:H500", {"validate":"list","source":"=solve_status_list"}) # Resolution Status (Issue Tracking)
+    sheet3.data_validation("I2:I500", {"validate":"list","source":"=resolver_list"}) # Resolver (Issue Tracking)
 
     # ===== 1. Auto-calculate overdue days =====
     for row in range(2, 501):

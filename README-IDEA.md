@@ -101,6 +101,7 @@ e.g. `spring.profiles.active=dev;server.port=8081`
 - [Fitten Code:Faster and Better AI Assistant](https://plugins.jetbrains.com/plugin/23640-fitten-code-faster-and-better-ai-assistant)
 - [Gemini Code Assist](https://plugins.jetbrains.com/plugin/24198-gemini-code-assist)
 - [JetBrains AI Assistant](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant)
+- [Cline](https://plugins.jetbrains.com/plugin/28247-cline)
 
 ### Language Pack
 - [Chinese(Simplified)Language Pack / 中文语言包](https://plugins.jetbrains.com/plugin/13710-chinese-simplified-language-pack----)

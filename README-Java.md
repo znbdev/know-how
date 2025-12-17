@@ -143,8 +143,8 @@ public interface FuelConsumable {
 
     // 抽象方法：定义了行为规范，但没有实现。
     // 任何实现该接口的类必须实现此方法。
-    double calculateFuelEfficiency(double distance, double fuelUsed); 
-    
+    double calculateFuelEfficiency(double distance, double fuelUsed);
+
     // Java 8 引入的默认方法：提供一个默认实现，子类可以选择性地重写。
     default void refill() {
         System.out.println("燃料箱正在加注燃料...");
@@ -174,11 +174,12 @@ public abstract class AbstractVehicle {
     // 抽象方法：定义了行为规范，但没有实现。
     // 任何非抽象子类必须实现此方法。
     public abstract void drive();
-    
+
     // Getter 方法
     public String getModel() {
         return model;
     }
+
     public int getMaxSpeed() {
         return maxSpeed;
     }
@@ -211,29 +212,59 @@ public class Car extends AbstractVehicle implements FuelConsumable {
         System.out.println(getModel() + " 的燃油效率为: " + String.format("%.2f", efficiency) + " km/L");
         return efficiency;
     }
-    
+
     // (可选) 可以重写接口的默认方法，这里选择不重写，使用默认实现
 }
 
 // ----------------------- 4. 测试类 (Main Method) -----------------------
 public class Main {
-public static void main(String[] args) {
+    public static void main(String[] args) {
 // 多态的应用：使用抽象类型引用具体对象
 // 接口引用
-FuelConsumable myFuelVehicle = new Car("Toyota Camry", 220, 4);
+        FuelConsumable myFuelVehicle = new Car("Toyota Camry", 220, 4);
 // 抽象类引用
-AbstractVehicle myVehicle = (AbstractVehicle) myFuelVehicle;
+        AbstractVehicle myVehicle = (AbstractVehicle) myFuelVehicle;
 
         System.out.println("--- 抽象类方法调用（通用行为） ---");
         myVehicle.startEngine(); // 调用继承自抽象类的普通方法
         myVehicle.drive();      // 调用继承自抽象类，但在子类中实现的方法
-        
+
         System.out.println("\n--- 接口方法调用（能力/契约） ---");
         myFuelVehicle.calculateFuelEfficiency(500, 40); // 调用接口中要求实现的方法
         myFuelVehicle.refill(); // 调用接口中提供的默认方法
     }
 }
 ```
+
+---
+
+1. 核心区别对比表
+
+| 特性    | StringBuilder   | StringBuffer        |
+|-------|-----------------|---------------------|
+| 线程安全性 | 不安全（非同步）        | 安全（同步/Synchronized） |
+| 执行性能  | 更高（无锁开销）        | 较低（有锁开销）            |
+| 引入版本  | JDK 1.5 (2004年) | JDK 1.0 (1995年)     |
+| 适用场景  | 单线程环境下的字符串拼接    | 多线程环境下的共享字符串操作      |
+
+2. 为什么会有这种区别？
+
+- StringBuffer (线程安全)：它的所有公共方法都使用了 synchronized 关键字进行加锁。这意味着当多个线程同时操作同一个
+  StringBuffer 对象时，它能保证数据的一致性，但获取和释放锁会消耗额外的 CPU 资源。
+- StringBuilder (追求速度)：它是为了替代单线程场景下的 StringBuffer 而设计的。它去掉了方法上的同步锁，减少了性能损耗。在现代开发（如
+  2025 年的主流 Java 应用）中，绝大多数字符串拼接都在单线程方法内部完成，因此 StringBuilder 是更常用的选择。
+
+3. 与 String 的区别
+
+- String (不可变)：每次修改（如使用 + 拼接）都会创建新的对象，在循环中大量操作会产生大量垃圾，性能极差。
+- StringBuilder/StringBuffer (可变)：它们在内部维护一个字符数组，可以在原对象上进行追加（append）、插入（insert）或删除，不会频繁创建新对象。
+
+4. 开发建议
+
+- 首选 StringBuilder：在绝大多数业务逻辑、方法局部变量中，请直接使用 StringBuilder 以获得最佳性能。
+- 慎用 StringBuffer：除非你明确知道该字符串对象会被多个线程同时修改。事实上，随着并发编程模式的演进，这种直接共享可变字符串的场景已非常少见。
+- 简单拼接用 +：对于简单的、非循环的字符串连接，Java 编译器（特别是 OpenJDK 17+）会自动将其优化为 StringBuilder
+- 操作，你可以放心使用 +。
 
 ---
 

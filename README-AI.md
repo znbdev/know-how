@@ -1,6 +1,12 @@
 AI
 =====
 
+# Claude Agent Skills
+
+- [skills](https://skills.sh/)
+- [n8n](https://n8n.io/)
+
+
 # AI for meeting recording
 
 - [GitMind](https://gitmind.com/tw/)
@@ -19,4 +25,5 @@ AI
 - [https://www.youtube.com/watch?v=wefm-8ER3Oo](AI幫我10分鐘搞定PPT)
 - [一個平台替代所有AI訂閱](https://www.youtube.com/watch?v=OSG1r4aJIh4)
 - [NotebookLM 完整教學](https://www.youtube.com/watch?v=zgWerTIynVA)
+- [n8n要凉了？Claude Agent Skills实测对比，谁才是AI自动化之王！](https://www.youtube.com/watch?v=96LG1nms23Q)
 

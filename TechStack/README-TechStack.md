@@ -63,7 +63,7 @@ TechStack
 
 ---
 
-![img.png](img.png)
+![TechStack.png](TechStack.png)
 
 # Reference
 

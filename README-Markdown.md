@@ -65,21 +65,61 @@ Task lists
 分割线
 ***
 
+---
+
 ***图片***
+
 ![This is an image](https://myoctocat.com/assets/images/base-octocat.svg)
 
+---
+
 ***网络图片***
+
 ![Web image](https://avatars.githubusercontent.com/u/78408077?s=400&u=354a814d3eebe0872c37f5520174055893c95111&v=4)
 
+---
+
 ***本地图片***
+
 ![Local image](images/logo.png)
 
+---
 
 <div style="background-color: #FF0000; padding: 20px; border-radius: 5px; color: #FFFFFF; font-size: 20px;">
     <strong>警告：</strong> 这里是警告信息。
 </div>
 
 # mermaid 例子
+
+```mermaid
+erDiagram
+    STUDENT ||--o{ ENROLLMENT : "enrolls"
+    COURSE ||--o{ ENROLLMENT : "is joined by"
+
+    STUDENT {
+        int id PK
+        string name
+    }
+    COURSE {
+        int id PK
+        string title
+    }
+    ENROLLMENT {
+        int student_id FK
+        int course_id FK
+        datetime enrollment_date
+    }
+
+```
+
+```mermaid
+graph TD
+Root[我的本地档案库] --> ProjectA[项目A资料]
+Root --> Archive[归档旧数据]
+
+    ProjectA --> File1["[方案书](file:///C:/Path/To/Doc.docx)"]
+    ProjectA --> File2["[数据表](file:///C:/Path/To/Data.xlsx)"]
+```
 
 ```mermaid
 graph LR

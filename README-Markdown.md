@@ -91,6 +91,102 @@ Task lists
 
 # mermaid 例子
 
+1. 基本语法
+
+```mermaid
+graph TD
+A[Start] --> B{Error?}
+B -- Yes --> C[Fix]
+B -- No --> D[End]
+style A fill:#f9f,stroke:#333,stroke-width:2px
+style B fill:#ccf,stroke:#f66,stroke-width:2px,stroke-dasharray: 5 5
+```
+
+2. 精确控制：单个节点样式
+
+```mermaid
+flowchart LR
+A[蓝色节点] --> B[粉色节点]
+style A fill:#00f,stroke:#333,stroke-width:2px
+style B fill:#f9f,stroke:#f66,color:#fff
+```
+
+3. 批量控制：类定义 (classDef)
+```mermaid
+flowchart TD
+  A:::redNode --> B:::redNode
+  C --> D
+  classDef redNode fill:#ff6666,stroke:#333,color:white;
+```
+
+4. 进阶自定义：修改主题变量
+
+```mermaid
+%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#ff0000', 'edgeColor': '#00ff00' } } }%%
+graph LR
+  A --> B
+```
+
+1. 全局主题切换
+   使用 config 配置项快速更改预设配色方案：
+
+```mermaid
+---
+config:
+  theme: forest
+---
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+```
+
+2. 深度自定义 (themeVariables)
+   如果你需要精确控制实体框、线条或文本的颜色，必须通过 themeVariables 修改。这通常配合 base 主题使用：
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffcccc',          %% 实体框背景色
+    'primaryBorderColor': '#ff0000',    %% 实体框边框颜色
+    'primaryTextColor': '#333',         %% 实体标题文字颜色
+    'lineColor': '#0000ff',             %% 关系线条颜色
+    'tertiaryColor': '#eeeeee'          %% 属性列表背景色
+  }
+}}%%
+erDiagram
+  USER ||--o{ POST : "writes"
+  USER {
+    string username
+    string email
+  }
+```
+
+实现方案：利用 CSS ID 选择器
+Mermaid 渲染 ER 图时，会为每个实体生成一个以 entity-实体名 为规则的 ID。你可以利用这个特性在图表顶部注入样式：
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeCSS': '
+    #entity-USER .er.entityBox { fill: #ffcc66; stroke: #d4a017; }
+    #entity-ORDER .er.entityBox { fill: #99ff99; stroke: #2e8b57; }
+    #entity-PRODUCT .er.entityBox { fill: #99ccff; stroke: #4682b4; }
+  '
+}}%%
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ PRODUCT : contains
+    USER {
+        string name
+    }
+    ORDER {
+        int id
+    }
+    PRODUCT {
+        string title
+    }
+```
+
 ```mermaid
 erDiagram
     STUDENT ||--o{ ENROLLMENT : "enrolls"
@@ -140,6 +236,56 @@ graph LR
     G -- 授权失败(403) --> M(处理授权失败);
     H --> N(完成);
     M --> N;
+```
+
+1. 基础分类：使用 Subgraph
+   你可以将相关的节点放在同一个 subgraph 块中：
+
+```mermaid
+flowchart LR
+    subgraph ORDER [订单模块]
+        A[创建订单] --> B[支付确认]
+    end
+
+    subgraph LOGISTICS [物流模块]
+        C[打包出库] --> D[运输中]
+    end
+
+    subgraph INVENTORY [在库模块]
+        E[库存核减]
+    end
+
+    B --> E
+    E --> C
+```
+
+2. 进阶分类：为分类上色
+   为了视觉上更清晰，你可以用 style 给整个子图（分类框）设置不同的背景色：
+
+```mermaid
+flowchart TB
+    subgraph ORD [订单业务]
+        direction TB
+        o1[下单] --> o2[支付]
+    end
+
+    subgraph LOG [物流业务]
+        direction TB
+        l1[揽收] --> l2[配送]
+    end
+
+    subgraph STK [在库管理]
+        direction TB
+        s1[入库] --> s2[盘点]
+    end
+
+    o2 --> s1
+    s1 --> l1
+
+    %% 为不同分类设定背景颜色
+    style ORD fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style LOG fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style STK fill:#fff3e0,stroke:#e65100,stroke-width:2px
 ```
 
 这是使用中心化的 SSO (Single Sign-On) 服务的方案的 Mermaid 示意图：

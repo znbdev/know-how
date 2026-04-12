@@ -32,7 +32,7 @@ git config --list
 git config --global --edit
 #git config --local --list
 git config --global user.name "znbdev"
-git config --global user.email "znbdev@outlook.com"
+git config --global user.email "testuser@outlook.com"
 git config --global http.proxy dev-proxy.db.?????.co.jp:9501
 git config --global https.proxy dev-proxy.db.?????.co.jp:9501
 ```
@@ -43,7 +43,7 @@ git config --global https.proxy dev-proxy.db.?????.co.jp:9501
 git config --edit
 e.g.)
 [user]
-email = znbdev@outlook.com
+email = testuser@outlook.com
 name = znbdev
 ```
 
@@ -63,8 +63,8 @@ if [ "$GIT_COMMITTER_NAME" = "znbsys" ];
 then
     GIT_COMMITTER_NAME="znbdev";
     GIT_AUTHOR_NAME="znbdev";
-    GIT_COMMITTER_EMAIL="znbdev@outlook.com";
-    GIT_AUTHOR_EMAIL="znbdev@outlook.com";
+    GIT_COMMITTER_EMAIL="testuser@outlook.com";
+    GIT_AUTHOR_EMAIL="testuser@outlook.com";
     git commit-tree "$@";
 else
     git commit-tree "$@";
@@ -85,8 +85,10 @@ git checkout -b master remotes/origin/master
 git checkout -b dev remotes/origin/dev
 
 # commit
-git commit --amend --author="znbdev <znbdev@outlook.com>"
+git commit --amend --author="znbdev <testuser@outlook.com>"
 
+# 一条命令删除本地所有修改
+git reset --hard HEAD && git clean -df
 # clean all modify 删除本地修改
 git checkout . && git clean -xdf
 git reflog --date=local | grep master
@@ -160,12 +162,12 @@ cm="$GIT_COMMITTER_EMAIL"
 if [ "$GIT_COMMITTER_EMAIL" = "xxxxx@xxxxx.com" ]
 then
     cn="znbdev"
-    cm="znbdev@outlook.com"
+    cm="testuser@outlook.com"
 fi
 if [ "$GIT_AUTHOR_EMAIL" = "xxxxx@xxxxx.com" ]
 then
     an="znbdev"
-    am="znbdev@outlook.com"
+    am="testuser@outlook.com"
 fi
  
 export GIT_AUTHOR_NAME="$an"

@@ -1,0 +1,156 @@
+{
+  "database_name": "ecommerce_system",
+  "description": "电商系统核心数据库，包含用户、订单及商品明细等模块。",
+  "tables": [
+    {
+      "table_name": "users",
+      "description": "系统核心用户表，存储用户基础账号信息及激活状态。",
+      "business_domain": "用户中心",
+      "ai_hints": "1. 在进行用户留存分析或召回活动时，必须关联此表。\n2. 严禁向非管理员暴露 password_hash。\n3. 计算‘活跃用户’时，只需筛选 status = 'active'。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "constraints": ["PRIMARY KEY", "AUTO_INCREMENT"],
+          "description": "自增主键，用户唯一标识",
+          "ai_rules": "作为关联其他业务表（如订单、日志）的外键"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(150)",
+          "constraints": ["UNIQUE", "NOT NULL"],
+          "description": "用户的电子邮箱，用于登录和身份验证",
+          "ai_rules": "输入时必须进行 Email 格式校验"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)",
+          "constraints": ["DEFAULT 'pending'"],
+          "description": "用户账号状态",
+          "enums": {
+            "pending": "注册未激活",
+            "active": "正常使用中",
+            "suspended": "因违规被封禁"
+          },
+          "ai_rules": "计算‘活跃用户’时，只需筛选 status = 'active'"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "constraints": ["DEFAULT CURRENT_TIMESTAMP"],
+          "description": "账号创建时间"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_user_email",
+          "fields": ["email"],
+          "type": "UNIQUE",
+          "description": "优化基于邮箱的登录查询性能"
+        }
+      ]
+    },
+    {
+      "table_name": "orders",
+      "description": "存储用户交易的核心订单主表，记录支付状态、金额及物流信息。",
+      "business_domain": "交易中心",
+      "ai_hints": "1. 在进行销售额统计时，请使用 total_amount 字段，并排除 status = 'cancelled' 的订单。\n2. 关联用户表时，通过 user_id 进行 JOIN。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "constraints": ["PRIMARY KEY", "AUTO_INCREMENT"],
+          "description": "订单唯一流水号",
+          "ai_rules": "作为全系统的核心索引，所有子表均通过此 ID 关联。"
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "constraints": ["NOT NULL", "INDEXED"],
+          "description": "下单用户的唯一标识",
+          "foreign_key": "users(id)",
+          "ai_rules": "查询特定用户的订单历史时，必须使用此字段过滤。"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)",
+          "constraints": ["DEFAULT 'pending'"],
+          "description": "订单当前的生命周期状态",
+          "enums": {
+            "pending": "待支付",
+            "paid": "已支付/处理中",
+            "shipped": "已发货",
+            "completed": "已完成",
+            "cancelled": "已取消"
+          }
+        },
+        {
+          "name": "total_amount",
+          "type": "NUMERIC(10, 2)",
+          "constraints": ["NOT NULL"],
+          "description": "订单实际支付总金额（含运费，不含优惠前金额）"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "constraints": ["DEFAULT CURRENT_TIMESTAMP"],
+          "description": "订单创建时间"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_orders_user_status",
+          "fields": ["user_id", "status"],
+          "type": "COMPOSITE",
+          "description": "优化用户端订单列表查询性能"
+        }
+      ]
+    },
+    {
+      "table_name": "order_items",
+      "description": "订单商品明细表，记录每个订单中包含的具体 SKU 信息。",
+      "business_domain": "交易中心",
+      "ai_hints": "此表与 orders 表是典型的一对多关系。分析热销商品时需关联 products 表。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "constraints": ["PRIMARY KEY"],
+          "description": "明细行 ID"
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "constraints": ["NOT NULL"],
+          "description": "关联的主订单 ID",
+          "foreign_key": "orders(id)",
+          "ai_rules": "删除订单时，需级联删除此表中的对应记录。"
+        },
+        {
+          "name": "product_name",
+          "type": "VARCHAR(255)",
+          "description": "商品快照名称（防止商品改名后订单显示不一致）"
+        },
+        {
+          "name": "quantity",
+          "type": "INTEGER",
+          "constraints": ["CHECK > 0"],
+          "description": "购买数量"
+        },
+        {
+          "name": "unit_price",
+          "type": "NUMERIC(10, 2)",
+          "description": "成交时的单价"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_items_order_id",
+          "fields": ["order_id"],
+          "type": "NORMAL",
+          "description": "优化根据订单 ID 查询明细的性能"
+        }
+      ]
+    }
+  ]
+}

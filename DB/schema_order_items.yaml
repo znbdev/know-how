@@ -1,0 +1,36 @@
+table_name: "order_items"
+description: "订单商品明细表，记录每个订单中包含的具体 SKU 信息。"
+business_domain: "交易中心"
+ai_hints: "此表与 orders 表是典型的一对多关系。分析热销商品时需关联 products 表。"
+
+columns:
+  - name: "id"
+    type: "BIGINT"
+    constraints: ["PRIMARY KEY"]
+    description: "明细行 ID"
+
+  - name: "order_id"
+    type: "BIGINT"
+    constraints: ["NOT NULL"]
+    description: "关联的主订单 ID"
+    ai_rules: "删除订单时，需级联删除此表中的对应记录。"
+    foreign_key: "orders(id)"
+
+  - name: "product_name"
+    type: "VARCHAR(255)"
+    description: "商品快照名称（防止商品改名后订单显示不一致）"
+
+  - name: "quantity"
+    type: "INTEGER"
+    constraints: ["CHECK > 0"]
+    description: "购买数量"
+
+  - name: "unit_price"
+    type: "NUMERIC(10, 2)"
+    description: "成交时的单价"
+
+indexes:
+  - name: "idx_items_order_id"
+    fields: ["order_id"]
+    type: "NORMAL"
+    description: "优化根据订单 ID 查询明细的性能"

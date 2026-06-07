@@ -1,0 +1,60 @@
+{
+  "table_name": "users",
+  "description": "系统核心用户表，存储用户基础账号信息及激活状态。",
+  "business_domain": "用户中心",
+  "ai_hints": "1. 在进行用户留存分析或召回活动时，必须关联此表。\n2. 严禁向非管理员暴露 password_hash。\n3. 计算‘活跃用户’时，只需筛选 status = 'active'。",
+  "columns": [
+    {
+      "name": "id",
+      "type": "BIGINT",
+      "constraints": [
+        "PRIMARY KEY",
+        "AUTO_INCREMENT"
+      ],
+      "description": "自增主键，用户唯一标识",
+      "ai_rules": "作为关联其他业务表（如订单、日志）的外键"
+    },
+    {
+      "name": "email",
+      "type": "VARCHAR(150)",
+      "constraints": [
+        "UNIQUE",
+        "NOT NULL"
+      ],
+      "description": "用户的电子邮箱，用于登录和身份验证",
+      "ai_rules": "输入时必须进行 Email 格式校验"
+    },
+    {
+      "name": "status",
+      "type": "VARCHAR(20)",
+      "constraints": [
+        "DEFAULT 'pending'"
+      ],
+      "description": "用户账号状态",
+      "enums": {
+        "pending": "注册未激活",
+        "active": "正常使用中",
+        "suspended": "因违规被封禁"
+      },
+      "ai_rules": "计算‘活跃用户’时，只需筛选 status = 'active'"
+    },
+    {
+      "name": "created_at",
+      "type": "TIMESTAMP",
+      "constraints": [
+        "DEFAULT CURRENT_TIMESTAMP"
+      ],
+      "description": "账号创建时间"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_user_email",
+      "fields": [
+        "email"
+      ],
+      "type": "UNIQUE",
+      "description": "优化基于邮箱的登录查询性能"
+    }
+  ]
+}

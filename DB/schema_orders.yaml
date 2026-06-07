@@ -1,0 +1,52 @@
+table_name: "orders"
+description: "存储用户交易的核心订单主表，记录支付状态、金额及物流信息。"
+business_domain: "交易中心"
+ai_hints: |
+  1. 在进行销售额统计时，请使用 total_amount 字段，并排除 status = 'cancelled' 的订单。
+  2. 严禁在日志中明文输出 user_address，涉及隐私数据。
+  3. 关联用户表时，通过 user_id 进行 JOIN。
+
+columns:
+  - name: "id"
+    type: "BIGINT"
+    constraints: ["PRIMARY KEY", "AUTO_INCREMENT"]
+    description: "订单唯一流水号"
+    ai_rules: "作为全系统的核心索引，所有子表均通过此 ID 关联。"
+
+  - name: "user_id"
+    type: "BIGINT"
+    constraints: ["NOT NULL", "INDEXED"]
+    description: "下单用户的唯一标识"
+    ai_rules: "查询特定用户的订单历史时，必须使用此字段过滤。"
+    foreign_key: "users(id)"
+
+  - name: "status"
+    type: "VARCHAR(20)"
+    constraints: ["DEFAULT 'pending'"]
+    description: "订单当前的生命周期状态"
+    enums:
+      pending: "待支付"
+      paid: "已支付/处理中"
+      shipped: "已发货"
+      completed: "已完成"
+      cancelled: "已取消"
+    ai_rules: |
+      - 计算‘待发货订单’时筛选 status IN ('paid', 'shipped')。
+      - 只有 status = 'pending' 且 created_at 超过 30 分钟的订单才允许自动取消。
+
+  - name: "total_amount"
+    type: "NUMERIC(10, 2)"
+    constraints: ["NOT NULL"]
+    description: "订单实际支付总金额（含运费，不含优惠前金额）"
+    ai_rules: "财务对账时以此字段为准，注意精度处理。"
+
+  - name: "created_at"
+    type: "TIMESTAMP"
+    constraints: ["DEFAULT CURRENT_TIMESTAMP"]
+    description: "订单创建时间"
+
+indexes:
+  - name: "idx_orders_user_status"
+    fields: ["user_id", "status"]
+    type: "COMPOSITE"
+    description: "优化用户端订单列表查询性能"

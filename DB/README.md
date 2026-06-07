@@ -30,7 +30,7 @@
 
 ## 📝 标准管理模板（YAML 示例）
 
-建议为每个核心表维护一个 `.yaml` 文件。你可以参考项目中的 [table_definition_example.yaml](./table_definition_example.yaml)。
+建议为每个核心表维护一个 `.yaml` 文件。你可以参考项目中的 [schema_users.yaml](./schema_users.yaml)。
 
 ```yaml
 table_name: "users"

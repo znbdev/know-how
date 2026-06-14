@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📌 タスク管理ボード</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
+
+/* Header */
+.header { background: #2c3e50; color: #fff; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+.header h1 { font-size: 20px; flex-shrink: 0; }
+.header .search-box { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.header .search-box input { padding: 6px 12px; border: none; border-radius: 4px; font-size: 14px; width: 200px; }
+.btn { padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-primary { background: #3498db; color: #fff; }
+.btn-primary:hover { background: #2980b9; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-outline { background: transparent; border: 1px solid #ccc; }
+
+/* Board */
+.board { display: flex; gap: 12px; padding: 16px; overflow-x: auto; min-height: calc(100vh - 60px); align-items: flex-start; }
+.column { background: #f8f9fa; border-radius: 8px; min-width: 260px; max-width: 300px; flex: 1; display: flex; flex-direction: column; }
+.column-header { padding: 10px 12px; font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; }
+.column-body { padding: 6px; min-height: 80px; flex: 1; }
+.column-body.drag-over { background: #e3f2fd; border-radius: 4px; }
+
+/* Cards */
+.card { background: #fff; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden; transition: box-shadow .15s; }
+.card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.card.dragging { opacity: 0.5; }
+.card .priority-bar { position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+.card .card-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; padding-left: 6px; }
+.card .card-meta { font-size: 11px; color: #888; padding-left: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+.card .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-left: 6px; }
+.card .card-status { font-size: 10px; color: #999; }
+.card .card-hours { font-size: 10px; color: #999; }
+
+/* Priority colors */
+.prio-P0 { background: #e74c3c; }
+.prio-P1 { background: #e67e22; }
+.prio-P2 { background: #f1c40f; }
+.prio-P3 { background: #3498db; }
+
+/* Status colors */
+.col-未開始 .column-header { background: #e8e8e8; color: #555; }
+.col-進行中 .column-header { background: #d4edda; color: #155724; }
+.col-ブロック .column-header { background: #fff3cd; color: #856404; }
+.col-完了 .column-header { background: #cce5ff; color: #004085; }
+.col-キャンセル .column-header { background: #e2e3e5; color: #383d41; }
+.col-未開始 .column-body { background: #f8f9fa; }
+.col-進行中 .column-body { background: #e8f5e9; }
+.col-ブロック .column-body { background: #fff8e1; }
+.col-完了 .column-body { background: #e3f2fd; }
+.col-キャンセル .column-body { background: #f5f5f5; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+.modal-overlay.active { display: flex; }
+.modal { background: #fff; border-radius: 10px; width: 100%; max-width: 720px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative; }
+.modal h2 { font-size: 18px; margin-bottom: 16px; }
+.modal-close { position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer; color: #999; background: none; border: none; }
+.modal-close:hover { color: #333; }
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 16px; gap: 0; }
+.tab { padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab.active { color: #3498db; border-bottom-color: #3498db; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Form */
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 3px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+input, select, textarea { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-family: inherit; }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3498db; }
+
+/* WBS table */
+.wbs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.wbs-table th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
+.wbs-table td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+.wbs-table .wbs-actions { white-space: nowrap; }
+.wbs-table .wbs-actions button { padding: 2px 6px; font-size: 11px; }
+
+/* Daily log */
+.log-entry { background: #fafafa; border-left: 3px solid #3498db; padding: 8px 12px; margin-bottom: 8px; border-radius: 0 4px 4px 0; }
+.log-entry .log-date { font-weight: 600; font-size: 12px; color: #3498db; }
+.log-entry .log-item { font-size: 12px; padding: 2px 0; }
+
+/* Stats bar */
+.stats { display: flex; gap: 24px; padding: 10px 24px; background: #fff; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+.stats .stat { display: flex; align-items: center; gap: 4px; }
+.stats .stat-value { font-weight: 700; }
+
+/* Misc */
+.empty-col { text-align: center; color: #bbb; font-size: 12px; padding: 24px 0; }
+.add-btn { background: none; border: none; cursor: pointer; font-size: 16px; color: inherit; opacity: 0.6; }
+.add-btn:hover { opacity: 1; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.mt-8 { margin-top: 8px; }
+.mb-8 { margin-bottom: 8px; }
+.text-center { text-align: center; }
+.justify-between { justify-content: space-between; }
+.items-center { align-items: center; }
+.w-full { width: 100%; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📌 タスク管理ボード</h1>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="🔍 検索..." oninput="renderBoard()">
+    <button class="btn btn-primary" onclick="openCreateModal()">＋ 新規タスク</button>
+    <button class="btn" style="background:#27ae60;color:#fff" onclick="exportExcel()">📥 Excel</button>
+  </div>
+</div>
+
+<div class="stats" id="statsBar"></div>
+
+<div class="board" id="board"></div>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal" id="taskModalContent">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 id="modalTitle">新規タスク</h2>
+
+    <div class="tabs" id="modalTabs">
+      <div class="tab active" data-tab="basic" onclick="switchTab('basic')">基本情報</div>
+      <div class="tab" data-tab="wbs" onclick="switchTab('wbs')">WBS 工数</div>
+      <div class="tab" data-tab="risk" onclick="switchTab('risk')">リスク</div>
+      <div class="tab" data-tab="log" onclick="switchTab('log')">Daily Log</div>
+    </div>
+
+    <!-- Basic -->
+    <div class="tab-content active" id="tab-basic">
+      <div class="form-row">
+        <div class="form-group" style="flex:3">
+          <label>タイトル *</label>
+          <input type="text" id="f_title">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ステータス</label>
+          <select id="f_status">
+            {% for s in statuses %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>優先度</label>
+          <select id="f_priority">
+            {% for p in priorities %}
+            <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>タイプ</label>
+          <select id="f_task_type">
+            {% for t in task_types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>担当者</label>
+          <input type="text" id="f_owner">
+        </div>
+        <div class="form-group">
+          <label>依頼者</label>
+          <input type="text" id="f_requester">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>開始日</label>
+          <input type="text" id="f_start_date" placeholder="YYYY-MM-DD">
+        </div>
+        <div class="form-group">
+          <label>期限</label>
+          <input type="text" id="f_due_date" placeholder="YYYY-MM-DD">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>コア目標</label>
+        <textarea id="f_core_objective" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>説明</label>
+        <textarea id="f_description" rows="3"></textarea>
+      </div>
+    </div>
+
+    <!-- WBS -->
+    <div class="tab-content" id="tab-wbs">
+      <div class="flex justify-between items-center mb-8">
+        <span style="font-size:13px;color:#666;">工数管理（推奨: 1項目あたり4h以内）</span>
+        <button class="btn btn-primary btn-sm" onclick="addWbsRow()">＋ 追加</button>
+      </div>
+      <table class="wbs-table" id="wbsTable">
+        <thead><tr><th>フェーズ</th><th>タスク</th><th>見積(h)</th><th>実績(h)</th><th>進捗</th><th></th></tr></thead>
+        <tbody id="wbsBody"></tbody>
+      </table>
+      <div class="flex justify-between mt-8" style="font-size:12px;color:#666;">
+        <span>合計: 見積 <span id="wbsEstTotal">0</span>h / 実績 <span id="wbsActTotal">0</span>h</span>
+        <span>偏差率: <span id="wbsDeviation">--</span>%</span>
+      </div>
+    </div>
+
+    <!-- Risk -->
+    <div class="tab-content" id="tab-risk">
+      <div class="form-group">
+        <label>外部依存</label>
+        <textarea id="f_dependencies" rows="3" placeholder="1行に1つ記入"></textarea>
+      </div>
+      <div class="form-group">
+        <label>潜在リスクと対応策（記述例: リスク -> 対応策）</label>
+        <textarea id="f_risks" rows="4" placeholder="例: APIの安定性が不明 -> フォールバック機構を実装"></textarea>
+      </div>
+      <div class="form-group">
+        <label>バッファ時間 (h)</label>
+        <input type="text" id="f_buffer" placeholder="0">
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="tab-content" id="tab-log">
+      <div class="form-group">
+        <label>日次ログ（1行目: ## YYYY-MM-DD、2行目以降: - タスク内容）</label>
+        <textarea id="f_log" rows="10" placeholder="例:&#10;## 2026-06-14&#10;- ログイン画面実装完了&#10;- コードレビュー実施"></textarea>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mt-8">
+      <div>
+        <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="deleteCurrentTask()">削除</button>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveTask()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allTasks = [];
+let editingTaskId = null;
+let wbsRowCount = 0;
+let currentFilter = '';
+
+const STATUSES = {{ statuses | tojson }};
+const STATUS_ICONS = {{ status_icons | tojson }};
+const PRIORITIES = {{ priorities | tojson }};
+const PHASES = {{ phases | tojson }};
+
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+async function loadTasks() {
+  allTasks = await api('GET', '/api/tasks');
+  renderBoard();
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  board.innerHTML = '';
+
+  const groups = {};
+  STATUSES.forEach(s => groups[s] = []);
+
+  allTasks.forEach(t => {
+    if (query && !t.title.toLowerCase().includes(query) && !t.owner.toLowerCase().includes(query)) return;
+    if (groups[t.status]) groups[t.status].push(t);
+  });
+
+  updateStats(groups);
+
+  STATUSES.forEach((status, idx) => {
+    const col = document.createElement('div');
+    col.className = `column col-${status}`;
+    col.setAttribute('data-status', status);
+
+    const icon = STATUS_ICONS[idx];
+    col.innerHTML = `<div class="column-header">${icon} ${status} <span>${groups[status].length}</span></div>`;
+
+    const body = document.createElement('div');
+    body.className = 'column-body';
+    body.setAttribute('data-status', status);
+    body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
+    body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+    body.addEventListener('drop', e => handleDrop(e, status));
+
+    if (groups[status].length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-col';
+      empty.textContent = 'カードがありません';
+      body.appendChild(empty);
+    } else {
+      groups[status].forEach(t => body.appendChild(createCard(t)));
+    }
+
+    col.appendChild(body);
+
+    board.appendChild(col);
+  });
+}
+
+function createCard(task) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = true;
+  card.dataset.id = task.id;
+
+  const p = task.priority || 'P2-中';
+  card.innerHTML = `
+    <div class="priority-bar prio-${p.replace(/[^P0-9]/g, '').replace('緊急','0').replace('高','1').replace('中','2').replace('低','3') || 'P2'}"></div>
+    <div class="card-title">${esc(task.title)}</div>
+    <div class="card-meta">${task.owner ? '👤 ' + esc(task.owner) : ''}${task.due_date ? ' 📅 ' + task.due_date : ''}</div>
+    <div class="card-footer">
+      <span class="card-status">${task.status_icon || ''}</span>
+      <span class="card-hours">${task.total_estimated > 0 ? '⏱ ' + task.total_estimated + 'h' : ''}</span>
+    </div>
+  `;
+
+  card.addEventListener('click', () => openEditModal(task.id));
+  card.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', task.id);
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+  return card;
+}
+
+async function handleDrop(e, newStatus) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const taskId = e.dataTransfer.getData('text/plain');
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task || task.status === newStatus) return;
+  task.status = newStatus;
+  await api('PUT', `/api/tasks/${taskId}`, task);
+  loadTasks();
+}
+
+function updateStats(groups) {
+  const bar = document.getElementById('statsBar');
+  let total = 0, done = 0, est = 0, act = 0;
+  allTasks.forEach(t => {
+    total++;
+    if (t.status === '完了') done++;
+    est += t.total_estimated || 0;
+    act += t.total_actual || 0;
+  });
+  bar.innerHTML = `
+    <div class="stat">📊 総タスク: <span class="stat-value">${total}</span></div>
+    <div class="stat">✅ 完了: <span class="stat-value">${done}</span> (${total ? Math.round(done/total*100) : 0}%)</div>
+    <div class="stat">⏱ 総見積: <span class="stat-value">${est.toFixed(1)}</span>h</div>
+    <div class="stat">📈 総実績: <span class="stat-value">${act.toFixed(1)}</span>h</div>
+    <div class="stat">🎯 偏差率: <span class="stat-value">${est ? ((act-est)/est*100).toFixed(1) : '--'}</span>%</div>
+  `;
+}
+
+/* Modals */
+function exportExcel() {
+  window.location.href = '/api/export/excel';
+}
+
+function openCreateModal(defaultStatus) {
+  editingTaskId = null;
+  document.getElementById('modalTitle').textContent = '新規タスク作成';
+  document.getElementById('deleteBtn').style.display = 'none';
+  clearForm();
+  if (defaultStatus) document.getElementById('f_status').value = defaultStatus;
+  switchTab('basic');
+  document.getElementById('taskModal').classList.add('active');
+}
+
+async function openEditModal(taskId) {
+  const task = await api('GET', `/api/tasks/${taskId}`);
+  if (task.error) return;
+  editingTaskId = taskId;
+  document.getElementById('modalTitle').textContent = 'タスク編集';
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+  populateForm(task);
+  switchTab('basic');
+  document.getElementById('taskModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('taskModal').classList.remove('active');
+  editingTaskId = null;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
+}
+
+function clearForm() {
+  ['f_title','f_owner','f_requester','f_start_date','f_due_date','f_core_objective','f_description','f_buffer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['f_status','f_priority','f_task_type'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.selectedIndex = 0;
+  });
+  document.getElementById('f_dependencies').value = '';
+  document.getElementById('f_risks').value = '';
+  document.getElementById('f_log').value = '';
+  document.getElementById('wbsBody').innerHTML = '';
+  wbsRowCount = 0;
+  updateWbsTotals();
+}
+
+function populateForm(task) {
+  document.getElementById('f_title').value = task.title || '';
+  document.getElementById('f_status').value = task.status || STATUSES[0];
+  document.getElementById('f_priority').value = task.priority || PRIORITIES[2];
+  document.getElementById('f_task_type').value = task.task_type || '';
+  document.getElementById('f_owner').value = task.owner || '';
+  document.getElementById('f_requester').value = task.requester || '';
+  document.getElementById('f_start_date').value = task.start_date || '';
+  document.getElementById('f_due_date').value = task.due_date || '';
+  document.getElementById('f_core_objective').value = task.core_objective || '';
+  document.getElementById('f_description').value = task.description || '';
+  document.getElementById('f_buffer').value = task.buffer_hours || '';
+
+  const deps = (task.external_dependencies || []).map(d => d.startsWith('- ') ? d : '- ' + d).join('\n');
+  document.getElementById('f_dependencies').value = deps;
+
+  const risks = (task.risks || []).map(r => {
+    const desc = r.description || r;
+    const mit = r.mitigation || '';
+    return mit ? `- ${desc} -> ${mit}` : `- ${desc}`;
+  }).join('\n');
+  document.getElementById('f_risks').value = risks;
+
+  const logs = (task.daily_logs || []).map(log => {
+    let s = `## ${log.date || ''}`;
+    (log.items || []).forEach(item => s += `\n- ${item}`);
+    if (log.notes) s += `\n  ノート: ${log.notes}`;
+    return s;
+  }).join('\n\n');
+  document.getElementById('f_log').value = logs;
+
+  document.getElementById('wbsBody').innerHTML = '';
+  wbsRowCount = 0;
+  (task.wbs_items || []).forEach(item => addWbsRow(item));
+  updateWbsTotals();
+}
+
+/* WBS */
+function addWbsRow(data) {
+  data = data || {};
+  const tr = document.createElement('tr');
+  const idx = wbsRowCount;
+  tr.dataset.idx = idx;
+
+  const phaseOpts = PHASES.map(p => `<option value="${p}" ${p === (data.phase||'') ? 'selected' : ''}>${p}</option>`).join('');
+  tr.innerHTML = `
+    <td><select class="wbs-phase">${phaseOpts}</select></td>
+    <td><input type="text" class="wbs-task" value="${esc(data.task_name||'')}" style="width:100%"></td>
+    <td><input type="number" class="wbs-est" step="0.5" value="${data.estimated_hours||''}" style="width:60px" oninput="updateWbsTotals()"></td>
+    <td><input type="number" class="wbs-act" step="0.5" value="${data.actual_hours||''}" style="width:60px" oninput="updateWbsTotals()"></td>
+    <td><input type="text" class="wbs-progress" value="${esc(data.progress||'')}" style="width:80px"></td>
+    <td class="wbs-actions"><button class="btn btn-sm" onclick="this.closest('tr').remove();updateWbsTotals();">×</button></td>
+  `;
+  document.getElementById('wbsBody').appendChild(tr);
+  wbsRowCount++;
+  updateWbsTotals();
+}
+
+function getWbsData() {
+  const items = [];
+  document.querySelectorAll('#wbsBody tr').forEach(tr => {
+    items.push({
+      phase: tr.querySelector('.wbs-phase').value,
+      task_name: tr.querySelector('.wbs-task').value,
+      estimated_hours: parseFloat(tr.querySelector('.wbs-est').value) || 0,
+      actual_hours: parseFloat(tr.querySelector('.wbs-act').value) || 0,
+      progress: tr.querySelector('.wbs-progress').value,
+    });
+  });
+  return items;
+}
+
+function updateWbsTotals() {
+  let est = 0, act = 0;
+  document.querySelectorAll('#wbsBody tr').forEach(tr => {
+    est += parseFloat(tr.querySelector('.wbs-est').value) || 0;
+    act += parseFloat(tr.querySelector('.wbs-act').value) || 0;
+  });
+  document.getElementById('wbsEstTotal').textContent = est.toFixed(1);
+  document.getElementById('wbsActTotal').textContent = act.toFixed(1);
+  document.getElementById('wbsDeviation').textContent = est ? ((act-est)/est*100).toFixed(1) : '--';
+}
+
+/* Save */
+async function saveTask() {
+  const title = document.getElementById('f_title').value.trim();
+  if (!title) { alert('タイトルは必須です。'); return; }
+
+  const depsText = document.getElementById('f_dependencies').value.trim();
+  const externalDependencies = depsText ? depsText.split('\n').map(l => l.replace(/^- /,'').trim()).filter(Boolean) : [];
+
+  const risksText = document.getElementById('f_risks').value.trim();
+  const risks = risksText ? risksText.split('\n').map(line => {
+    line = line.replace(/^- /,'').trim();
+    if (!line) return null;
+    const arrowIdx = line.indexOf('->');
+    if (arrowIdx > 0) return { description: line.substring(0, arrowIdx).trim(), mitigation: line.substring(arrowIdx + 2).trim() };
+    return { description: line, mitigation: '' };
+  }).filter(Boolean) : [];
+
+  const logText = document.getElementById('f_log').value.trim();
+  const dailyLogs = [];
+  if (logText) {
+    const sections = logText.split(/\n(?=##\s)/);
+    sections.forEach(section => {
+      const lines = section.split('\n').filter(Boolean);
+      const dateLine = lines[0].replace(/^##\s*/, '').trim();
+      const items = [];
+      let notes = '';
+      lines.slice(1).forEach(l => {
+        const trimmed = l.trim();
+        if (trimmed.startsWith('- ')) items.push(trimmed.substring(2));
+        else if (trimmed.startsWith('ノート:') || trimmed.startsWith(' ')) notes += trimmed + ' ';
+      });
+      dailyLogs.push({ date: dateLine, items, notes: notes.trim() });
+    });
+  }
+
+  const task = {
+    title,
+    status: document.getElementById('f_status').value,
+    priority: document.getElementById('f_priority').value,
+    task_type: document.getElementById('f_task_type').value,
+    owner: document.getElementById('f_owner').value,
+    requester: document.getElementById('f_requester').value,
+    start_date: document.getElementById('f_start_date').value,
+    due_date: document.getElementById('f_due_date').value,
+    core_objective: document.getElementById('f_core_objective').value,
+    description: document.getElementById('f_description').value,
+    wbs_items: getWbsData(),
+    risks: risks,
+    external_dependencies: externalDependencies,
+    buffer_hours: parseFloat(document.getElementById('f_buffer').value) || 0,
+    daily_logs: dailyLogs,
+  };
+
+  if (editingTaskId) {
+    await api('PUT', `/api/tasks/${editingTaskId}`, task);
+  } else {
+    await api('POST', '/api/tasks', task);
+  }
+  closeModal();
+  loadTasks();
+}
+
+async function deleteCurrentTask() {
+  if (!editingTaskId) return;
+  if (!confirm('タスクを削除しますか？')) return;
+  await api('DELETE', `/api/tasks/${editingTaskId}`);
+  closeModal();
+  loadTasks();
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadTasks();
+</script>
+</body>
+</html>

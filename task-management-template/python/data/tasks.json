@@ -1,0 +1,495 @@
+[
+  {
+    "id": "f46ba7b4",
+    "title": "ユーザー認証モジュール改修",
+    "description": "",
+    "status": "完了",
+    "priority": "P0-緊急",
+    "task_type": "機能開発",
+    "owner": "田中",
+    "requester": "佐藤",
+    "start_date": "2026-06-10",
+    "due_date": "2026-06-18",
+    "core_objective": "OAuth2.0 対応とパスワードレス認証の追加",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "既存認証フロー分析",
+        "estimated_hours": 2,
+        "actual_hours": 1.5,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "OAuth2.0 技術調査",
+        "estimated_hours": 3,
+        "actual_hours": 2,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "OAuth クライアント実装",
+        "estimated_hours": 6,
+        "actual_hours": 4,
+        "progress": "80%",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "トークン管理リファクタ",
+        "estimated_hours": 4,
+        "actual_hours": 0,
+        "progress": "未着手",
+        "notes": ""
+      },
+      {
+        "phase": "3. レビュー・最適化",
+        "task_name": "セキュリティレビュー",
+        "estimated_hours": 2,
+        "actual_hours": 0,
+        "progress": "未着手",
+        "notes": ""
+      }
+    ],
+    "risks": [
+      {
+        "description": "サードパーティOAuthプロバイダの可用性",
+        "mitigation": "複数プロバイダ対応とサーキットブレーカー"
+      },
+      {
+        "description": "既存ユーザーセッションの移行",
+        "mitigation": "段階的ロールアウト計画"
+      }
+    ],
+    "external_dependencies": [
+      "認証基盤チームのAPI提供",
+      "セキュリティチームのレビュー"
+    ],
+    "buffer_hours": 3.0,
+    "daily_logs": [
+      {
+        "date": "2026-06-14",
+        "items": [
+          "OAuth クライアント実装 80%完了",
+          "コードレビュー依頼"
+        ],
+        "notes": "レビュー待ち時間が発生"
+      }
+    ],
+    "resources": [],
+    "change_history": [],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  },
+  {
+    "id": "dc2e05ac",
+    "title": "DB パフォーマンスチューニング",
+    "description": "",
+    "status": "未開始",
+    "priority": "P1-高",
+    "task_type": "技術最適化",
+    "owner": "鈴木",
+    "requester": "システム部",
+    "start_date": "2026-06-17",
+    "due_date": "2026-06-24",
+    "core_objective": "主要クエリの応答時間を50%以上改善",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "スロークエリログ分析",
+        "estimated_hours": 3,
+        "actual_hours": 3,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "インデックス戦略設計",
+        "estimated_hours": 2,
+        "actual_hours": 3,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "インデックス最適化",
+        "estimated_hours": 4,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "クエリリライト",
+        "estimated_hours": 3,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "3. レビュー・最適化",
+        "task_name": "結果検証",
+        "estimated_hours": 3,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      }
+    ],
+    "risks": [
+      {
+        "description": "本番DBへの直接変更リスク",
+        "mitigation": "ステージング環境で十分に検証後、変更管理プロセス経由で適用"
+      }
+    ],
+    "external_dependencies": [
+      "DBA チームの権限申請"
+    ],
+    "buffer_hours": 2.0,
+    "daily_logs": [],
+    "resources": [],
+    "change_history": [],
+    "created_at": "",
+    "updated_at": "2026-06-14 18:24",
+    "tags": []
+  },
+  {
+    "id": "614cd14a",
+    "title": "決済API 障害対応",
+    "description": "",
+    "status": "ブロック",
+    "priority": "P0-緊急",
+    "task_type": "バグ修正",
+    "owner": "高橋",
+    "requester": "カスタマーサポート",
+    "start_date": "2026-06-13",
+    "due_date": "2026-06-16",
+    "core_objective": "決済処理のタイムアウト障害を修正",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "エラーログ解析",
+        "estimated_hours": 2.0,
+        "actual_hours": 3.0,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "原因特定と再現確認",
+        "estimated_hours": 2.0,
+        "actual_hours": 2.5,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "修正コード実装",
+        "estimated_hours": 3.0,
+        "actual_hours": 0,
+        "progress": "未着手",
+        "notes": ""
+      },
+      {
+        "phase": "3. レビュー・最適化",
+        "task_name": "回帰テスト",
+        "estimated_hours": 2.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      }
+    ],
+    "risks": [
+      {
+        "description": "決済プロバイダ側の仕様変更",
+        "mitigation": "ベンダーに問い合わせ中"
+      }
+    ],
+    "external_dependencies": [
+      "決済プロバイダからのAPI仕様書提供待ち"
+    ],
+    "buffer_hours": 2.0,
+    "daily_logs": [],
+    "resources": [],
+    "change_history": [],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  },
+  {
+    "id": "a8644ee8",
+    "title": "API ドキュメント自動生成",
+    "description": "",
+    "status": "進行中",
+    "priority": "P2-中",
+    "task_type": "ドキュメント作成",
+    "owner": "伊藤",
+    "requester": "開発部",
+    "start_date": "2026-06-10",
+    "due_date": "2026-06-14",
+    "core_objective": "OpenAPI 仕様から自動生成されるドキュメントサイトの構築",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "ツール選定 (Swagger/Redoc)",
+        "estimated_hours": 2,
+        "actual_hours": 1.5,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "CIパイプライン構築",
+        "estimated_hours": 4,
+        "actual_hours": 3,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "デプロイ設定",
+        "estimated_hours": 2,
+        "actual_hours": 1.5,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "3. レビュー・最適化",
+        "task_name": "動作確認と調整",
+        "estimated_hours": 2,
+        "actual_hours": 1,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "4. 納品・クローズ",
+        "task_name": "チーム共有・展開",
+        "estimated_hours": 1,
+        "actual_hours": 0.5,
+        "progress": "完了",
+        "notes": ""
+      }
+    ],
+    "risks": [],
+    "external_dependencies": [],
+    "buffer_hours": 0.0,
+    "daily_logs": [
+      {
+        "date": "2026-06-13",
+        "items": [
+          "Redoc でのドキュメント表示確認",
+          "CI パイプライン完成"
+        ],
+        "notes": ""
+      }
+    ],
+    "resources": [],
+    "change_history": [
+      {
+        "date": "2026-06-10",
+        "change": "初回作成",
+        "changed_by": "伊藤"
+      },
+      {
+        "date": "2026-06-14",
+        "change": "完了",
+        "changed_by": "伊藤"
+      }
+    ],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  },
+  {
+    "id": "d3c93855",
+    "title": "Notification サービス設計",
+    "description": "",
+    "status": "未開始",
+    "priority": "P1-高",
+    "task_type": "調査分析",
+    "owner": "山田",
+    "requester": "プロダクトオーナー",
+    "start_date": "2026-06-17",
+    "due_date": "2026-06-28",
+    "core_objective": "プッシュ通知・メール・in-app通知を統合する通知基盤の設計",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "要件整理",
+        "estimated_hours": 3.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "既存通知処理の棚卸",
+        "estimated_hours": 2.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "技術選定資料作成",
+        "estimated_hours": 4.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "PoC 実装",
+        "estimated_hours": 6.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      }
+    ],
+    "risks": [
+      {
+        "description": "対象範囲が広くスコープクリープの懸念",
+        "mitigation": "MVP を明確に定義しフェーズ分割"
+      }
+    ],
+    "external_dependencies": [],
+    "buffer_hours": 3.0,
+    "daily_logs": [],
+    "resources": [],
+    "change_history": [],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  },
+  {
+    "id": "20271bf9",
+    "title": "ログイン画面UI 実装",
+    "description": "",
+    "status": "進行中",
+    "priority": "P1-高",
+    "task_type": "機能開発",
+    "owner": "佐藤",
+    "requester": "デザインチーム",
+    "start_date": "2026-06-12",
+    "due_date": "2026-06-19",
+    "core_objective": "Figma デザインに準拠したログイン画面の実装",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "Figma デザイン確認",
+        "estimated_hours": 1.0,
+        "actual_hours": 1.0,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "HTML/CSS テンプレート作成",
+        "estimated_hours": 4.0,
+        "actual_hours": 3.0,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "フォームバリデーション実装",
+        "estimated_hours": 3.0,
+        "actual_hours": 1.5,
+        "progress": "50%",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "エラーハンドリング",
+        "estimated_hours": 2.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      },
+      {
+        "phase": "3. レビュー・最適化",
+        "task_name": "クロスブラウザ確認",
+        "estimated_hours": 2.0,
+        "actual_hours": 0,
+        "progress": "",
+        "notes": ""
+      }
+    ],
+    "risks": [],
+    "external_dependencies": [],
+    "buffer_hours": 0.0,
+    "daily_logs": [],
+    "resources": [],
+    "change_history": [],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  },
+  {
+    "id": "f5132545",
+    "title": "旧データ移行スクリプト",
+    "description": "",
+    "status": "キャンセル",
+    "priority": "P2-中",
+    "task_type": "その他",
+    "owner": "渡辺",
+    "requester": "データチーム",
+    "start_date": "2026-06-01",
+    "due_date": "2026-06-10",
+    "core_objective": "レガシーシステムから新システムへのデータ移行",
+    "deliverables": [],
+    "success_criteria": [],
+    "wbs_items": [
+      {
+        "phase": "1. 調査・設計",
+        "task_name": "データマッピング定義",
+        "estimated_hours": 4.0,
+        "actual_hours": 3.0,
+        "progress": "完了",
+        "notes": ""
+      },
+      {
+        "phase": "2. 実装・開発",
+        "task_name": "移行スクリプト作成",
+        "estimated_hours": 8.0,
+        "actual_hours": 2.0,
+        "progress": "中断",
+        "notes": ""
+      }
+    ],
+    "risks": [
+      {
+        "description": "データ不整合リスク",
+        "mitigation": "バリデーションチェック実装"
+      }
+    ],
+    "external_dependencies": [],
+    "buffer_hours": 0.0,
+    "daily_logs": [],
+    "resources": [],
+    "change_history": [
+      {
+        "date": "2026-06-11",
+        "change": "プロジェクト優先度変更によりキャンセル",
+        "changed_by": "渡辺"
+      }
+    ],
+    "created_at": "2026-06-14 18:22",
+    "updated_at": "2026-06-14 18:22",
+    "tags": []
+  }
+]

@@ -3,7 +3,13 @@
 ## 必要環境
 
 - Python 3.9+
-- Flask（`pip3 install flask`）
+
+### 依存ライブラリ（任意）
+
+- **Flask**（`pip3 install flask`）— インストールされていれば優先使用
+- **openpyxl**（`pip3 install openpyxl`）— Excel エクスポート機能に必要
+
+どちらのライブラリも無い場合、Python 標準ライブラリのみで動作します（Excel エクスポートは無効）。
 
 ## 起動方法
 
@@ -13,7 +19,7 @@ python3 main.py
 ```
 
 ブラウザで **http://127.0.0.1:5800** を開く。
-（macOS では AirPlay Receiver がポート 5000 を使用中のため 5800 を使用）
+（Mac では AirPlay Receiver がポート 5000 を使用中のため 5800 を使用）
 
 ## サンプルデータ
 
@@ -50,8 +56,9 @@ JSON 形式で自動保存。手動編集も可能。
 
 ```
 python/
-├── main.py              # エントリーポイント
-├── webapp.py            # Flask API + ルーティング
+├── main.py              # エントリーポイント（Flask → 標準ライブラリに自動フォールバック）
+├── webapp.py            # Flask API + ルーティング（Flask インストール時のみ）
+├── server_native.py     # 標準ライブラリ版 HTTP サーバ（フォールバック用）
 ├── models.py            # データモデル
 ├── storage.py           # JSON ファイル入出力
 ├── seed_sample.py       # サンプルデータ生成

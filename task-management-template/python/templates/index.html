@@ -149,27 +149,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #3498db
       <div class="form-row">
         <div class="form-group">
           <label>ステータス</label>
-          <select id="f_status">
-            {% for s in statuses %}
-            <option value="{{ s }}">{{ s }}</option>
-            {% endfor %}
-          </select>
+          <select id="f_status"></select>
         </div>
         <div class="form-group">
           <label>優先度</label>
-          <select id="f_priority">
-            {% for p in priorities %}
-            <option value="{{ p }}">{{ p }}</option>
-            {% endfor %}
-          </select>
+          <select id="f_priority"></select>
         </div>
         <div class="form-group">
           <label>タイプ</label>
-          <select id="f_task_type">
-            {% for t in task_types %}
-            <option value="{{ t }}">{{ t }}</option>
-            {% endfor %}
-          </select>
+          <select id="f_task_type"></select>
         </div>
       </div>
       <div class="form-row">
@@ -260,10 +248,11 @@ let editingTaskId = null;
 let wbsRowCount = 0;
 let currentFilter = '';
 
-const STATUSES = {{ statuses | tojson }};
-const STATUS_ICONS = {{ status_icons | tojson }};
-const PRIORITIES = {{ priorities | tojson }};
-const PHASES = {{ phases | tojson }};
+const STATUSES = ["未開始", "進行中", "ブロック", "完了", "キャンセル"];
+const STATUS_ICONS = ["🟩", "🟨", "🟦", "⬜", "❌"];
+const PRIORITIES = ["P0-緊急", "P1-高", "P2-中", "P3-低"];
+const TASK_TYPES = ["機能開発", "バグ修正", "技術最適化", "調査分析", "ドキュメント作成", "その他"];
+const PHASES = ["1. 調査・設計", "2. 実装・開発", "3. レビュー・最適化", "4. 納品・クローズ"];
 
 async function api(method, url, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -591,6 +580,13 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function populateSelect(id, options) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+populateSelect('f_status', STATUSES);
+populateSelect('f_priority', PRIORITIES);
+populateSelect('f_task_type', TASK_TYPES);
 loadTasks();
 </script>
 </body>

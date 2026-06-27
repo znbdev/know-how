@@ -233,6 +233,70 @@ gh repo list --limit 200 --json name,description,visibility,updatedAt,url > repo
 
 定期进行仓库分类管理有助于保持 GitHub 账户的整洁和有序。
 
+---
+
+### 🚀 方案一：Mac 终端彩色分类输出（并自动复制到剪贴板）
+
+这行命令不仅会帮你在 Mac 终端里按语言将仓库分门别类，还会**自动把分类结果复制到你的 Mac 剪贴板**。你运行完后，直接去任何聊天软件或文档里 `Cmd + V` 就能粘贴！
+
+请在终端中复制并运行以下命令（记得把 `你的用户名` 改掉）：
+
+```zsh
+gh repo list 你的用户名 --limit 1000 --json name,primaryLanguage,description --jq 'group_by(.primaryLanguage.name) | .[] | "\n========= 📦 \((.[0].primaryLanguage.name // "其他/未识别")) 语言类项目 =========", (.[] | "- \(.name) (\(.description // "暂无描述"))")' | tee /dev/tty | pbcopy
+
+```
+
+**💡 Mac 运行此命令的精妙之处：**
+
+* `tee /dev/tty`：让结果**同时**显示在你的 Mac 屏幕上。
+* `pbcopy`：macOS 独家命令，默默地把屏幕上显示的所有分类结果**存入你的系统剪贴板**。
+
+---
+
+### 🚀 方案二：生成一个漂亮的 Markdown 分类文件（放入你的笔记）
+
+如果你想把分类结果保存为一个 `.md` 文件，方便导入到 Notion、Obsidian 或者作为你 GitHub 个人主页的素材，可以运行这一行：
+
+```zsh
+echo "# 我的 GitHub 仓库分类报告\n> 生成时间: $(date '+%Y-%m-%d')\n" > github_report.md && gh repo list 你的用户名 --limit 1000 --json name,primaryLanguage,description --jq 'group_by(.primaryLanguage.name) | .[] | "### 📂 \((.[0].primaryLanguage.name // "其他/未识别"))\n", (.[] | "* **\(.name)**: \(.description // "暂无描述")")' >> github_report.md && open github_report.md
+
+```
+
+**🎉 运行后的爽快体验：**
+运行完毕后，你的 Mac 会**自动弹开**刚刚生成的 `github_report.md` 文件（通常会用 Mac 自带的文本编辑或你默认的 Markdown 编辑器打开），里面已经按照排版整整齐齐地分好了类！
+
+---
+
+##  完全可以！一键生成带超链接的 Markdown 报告
+
+GitHub CLI 的 API 完美支持直接获取仓库的 `url`。我们只需要在请求的 JSON 字段中加上 `url`，并利用 `jq` 将其拼接成 Markdown 的标准链接格式 `[仓库名](URL)` 即可。
+
+请直接复制以下优化后的命令到你的 **Mac 终端**中运行（记得把 `你的用户名` 改掉）：
+
+```zsh
+echo "# 我的 GitHub 仓库分类报告\n> 生成时间: $(date '+%Y-%m-%d')\n" > github_report.md && gh repo list 你的用户名 --limit 1000 --json name,primaryLanguage,description,url --jq 'group_by(.primaryLanguage.name) | .[] | "### 📂 \((.[0].primaryLanguage.name // "其他/未识别"))\n", (.[] | "* **[\(.name)](\(.url))**: \(.description // "暂无描述")")' >> github_report.md && open github_report.md
+
+```
+
+### 🎉 运行后的完美效果
+
+运行后，Mac 依然会自动弹开 `github_report.md` 文件。文件内的排版会变成这样：
+
+```markdown
+# 我的 GitHub 仓库分类报告
+> 生成时间: 2026-06-27
+
+### 📂 Python
+* **[data-analysis](https://github.com/你的用户名/data-analysis)**: 这是一个数据分析脚本
+* **[web-scraper](https://github.com/你的用户名/web-scraper)**: 暂无描述
+
+### 📂 TypeScript
+* **[nextjs-blog](https://github.com/你的用户名/nextjs-blog)**: 我的个人博客前端项目
+
+```
+
+现在，无论是直接在支持 Markdown 的编辑器（如 Obsidian、Typora）里预览，还是直接复制到 Notion、GitHub Readme 中，**点击蓝色的仓库名字，就可以在浏览器中直接打开该仓库了！**
+
 ## 参考链接
 
 - [GitHub CLI 文档](https://cli.github.com/manual/)

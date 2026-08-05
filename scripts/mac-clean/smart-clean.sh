@@ -178,9 +178,13 @@ if command -v find >/dev/null; then
     done < <(find "$HOME" -maxdepth 3 -type d -name node_modules 2>/dev/null)
 fi
 
-# ---- [安全] 废纸篓 ----
-add_item safe "$HOME/.Trash" "废纸篓(Empty Trash)" \
-    "rm -rf \"$HOME/.Trash\"/*"
+# ---- [安全] 废纸篓 (含隐藏文件, 且大小不设下限) ----
+if [ -d "$HOME/.Trash" ]; then
+    tbytes=$(du -sk "$HOME/.Trash" 2>/dev/null | awk '{print $1*1024}')
+    SAFE_PATHS+=("$HOME/.Trash")
+    SAFE_DESC+=("废纸篓(Empty Trash)|${tbytes:-0}|osascript -e 'tell application \"Finder\" to empty trash'")
+    TOTAL_SAFE=$((TOTAL_SAFE + ${tbytes:-0}))
+fi
 
 # ---- [需判断] Downloads 大文件(>200MB) ----
 while IFS= read -r f; do
@@ -281,7 +285,7 @@ do_clean() {
                 read -r -p "${C_RESET}$q" ans
             fi
             case "$ans" in
-                y|Y|yes|YES|*) exec_cmd "$cmd" "${SAFE_PATHS[$idx]}" ;;
+                y|Y|yes|YES) exec_cmd "$cmd" "${SAFE_PATHS[$idx]}" ;;
                 *) echo "  跳过" ;;
             esac
             next=$((next+1))

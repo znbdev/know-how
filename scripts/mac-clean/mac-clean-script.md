@@ -3,22 +3,22 @@
 智能扫描 macOS 上可清理的内容，自动区分「可直接删除」和「需用户判断」两类，并在**用户确认后**才真正删除，避免误删用户数据。
 
 - 脚本路径: `scripts/mac-clean/smart-clean.sh`
-- 设计参考: `docs/mac-clean-plan.md`
+- 设计参考: `scripts/mac-clean/mac-clean-plan.md`
 
 ## 用法
 
 ```bash
 # 仅扫描并列出可清理项（推荐先跑这个）
-smart-clean.sh --list
+./smart-clean.sh --list
 
 # 进入交互确认模式（默认）
-smart-clean.sh --clean
+./smart-clean.sh --clean
 
 # 自动删除所有[安全]项；[需判断]项仍会逐个询问
-smart-clean.sh --yes
+./smart-clean.sh --yes
 
 # 查看帮助
-smart-clean.sh --help
+./smart-clean.sh --help
 ```
 
 | 参数 | 行为 |
@@ -46,13 +46,13 @@ smart-clean.sh --help
 - Xcode DerivedData、CoreSimulator 缓存
 - JVM/IDE 崩溃转储 `*.hprof`
 - `/cores` 核心转储（仅当当前用户可写时）
+- `~/.Trash` 废纸篓
 
 ### [需判断] 项
 - `~/.cache/codex-runtimes`（未用 Codex 可删）
 - `~/.cache/huggingface`（本地推理模型缓存）
 - 全局 npm 大体积包（>200MB，如 `omniroute`）
 - 项目级 `node_modules`（>500MB，删除需重装）
-- `~/.Trash` 废纸篓
 - `~/Downloads` 中 >200MB 的大文件
 - 用户目录下 >1GB 的大文件（模型文件等）
 

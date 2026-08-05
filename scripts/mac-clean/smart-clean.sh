@@ -178,8 +178,8 @@ if command -v find >/dev/null; then
     done < <(find "$HOME" -maxdepth 3 -type d -name node_modules 2>/dev/null)
 fi
 
-# ---- [需判断] 废纸篓 ----
-add_item rev "$HOME/.Trash" "废纸篓(Empty Trash)" \
+# ---- [安全] 废纸篓 ----
+add_item safe "$HOME/.Trash" "废纸篓(Empty Trash)" \
     "rm -rf \"$HOME/.Trash\"/*"
 
 # ---- [需判断] Downloads 大文件(>200MB) ----
@@ -273,7 +273,7 @@ do_clean() {
         local next=1
         for idx in "${!SAFE_PATHS[@]}"; do
             IFS='|' read -r desc bytes cmd <<< "${SAFE_DESC[$idx]}"
-            local q="程序问: ${C_SAFE}[${desc}]${C_RESET} ${SAFE_PATHS[$idx]} (${size_h "$bytes"}) 删除? [y/N] "
+            local q="程序问: ${C_SAFE}[${desc}]${C_RESET} ${SAFE_PATHS[$idx]} ($(size_h "$bytes")) 删除? [y/N] "
             if [ "$MODE_YES" -eq 1 ]; then
                 echo "${C_DIM}--yes 自动确认: ${desc}${C_RESET}"
                 ans="y"
@@ -296,7 +296,7 @@ do_clean() {
     else
         for idx in "${!REV_PATHS[@]}"; do
             IFS='|' read -r desc bytes cmd <<< "${REV_DESC[$idx]}"
-            read -r -p "${C_RESET}${C_REV}需判断: ${desc}${C_RESET} ${REV_PATHS[$idx]} (${size_h "$bytes"}) 确认删除? [y/N] " ans
+            read -r -p "${C_RESET}${C_REV}需判断: ${desc}${C_RESET} ${REV_PATHS[$idx]} ($(size_h "$bytes")) 确认删除? [y/N] " ans
             case "$ans" in
                 y|Y|yes|YES) exec_cmd "$cmd" "${REV_PATHS[$idx]}" ;;
                 *) echo "  跳过" ;;

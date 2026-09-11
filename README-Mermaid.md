@@ -199,13 +199,12 @@ gantt
 ## 7. 饼图 (Pie Chart)
 
 ```mermaid
-pie title 市场份额占比
+pie title Market Share
     "Chrome" : 65
     "Safari" : 18
     "Edge" : 8
     "Firefox" : 5
-    "其他" : 4
-
+    "Other" : 4
 ```
 
 ## 8. Git 分支图 (Gitgraph)

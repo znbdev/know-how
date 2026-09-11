@@ -302,6 +302,14 @@ C4Context
 ## 14. 桑基图 (Sankey Diagram)
 
 ```mermaid
+sankey
+
+网店访问量,提交订单,5000
+网店访问量,直接离开,15000
+提交订单,完成支付,4200
+提交订单,放弃支付,800
+完成支付,确认收货,4000
+完成支付,申请退款,200
 ```
 
 ## 15. XY 轴图 (XY Chart)
@@ -419,11 +427,20 @@ ishikawa-beta
 ## 22. 韦恩图 (Venn Diagram)
 
 ```mermaid
+venn-beta
+    set A["前端技能"]
+    set B["后端技能"]
+    union A,B["全栈能力"]
 ```
 
 ## 23. 雷达图 (Radar Chart)
 
 ```mermaid
+radar-beta
+    title Team Skill Assessment
+    axis Coding, Communication, Teamwork, ProblemSolving, Innovation
+    curve ZhangSan{85, 70, 90, 80, 75}
+    curve LiSi{70, 85, 75, 90, 80}
 ```
 
 # Reference

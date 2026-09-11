@@ -21,12 +21,42 @@ JobLauncher → Job → Step → (ItemReader → ItemProcessor → ItemWriter)
 
 ### 1. 作业启动流程
 
-```
-1. JobLauncher 接收启动请求
-2. 创建 JobExecution 和 StepExecution 对象
-3. JobRepository 保存执行状态为 STARTING
-4. 依次执行每个 Step
-5. 更新最终状态为 COMPLETED/FAILED
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as 调用方
+    participant Launcher as JobLauncher
+    participant Repo as JobRepository
+    participant Job as Job
+    participant Step as Step
+    participant R as ItemReader
+    participant P as ItemProcessor
+    participant W as ItemWriter
+
+    Client->>Launcher: run(Job, JobParameters)
+    Launcher->>Repo: 创建 JobInstance
+    Launcher->>Repo: 创建 JobExecution (STARTING)
+
+    loop 每个 Step
+        Launcher->>Step: execute(JobExecution)
+        Step->>Repo: 创建 StepExecution
+
+        loop Chunk 循环
+            Step->>R: read()
+            R-->>Step: 返回 Item
+            Step->>P: process(Item)
+            P-->>Step: 返回处理后的 Item
+            Step->>Step: 累积到 chunk
+        end
+
+        Step->>W: write(chunk)
+        Step->>Repo: 更新 Read/Write 计数
+        Step->>Repo: 更新 StepExecution (COMPLETED)
+        Step-->>Launcher: Step 完成
+    end
+
+    Launcher->>Repo: 更新 JobExecution (COMPLETED)
+    Launcher-->>Client: 返回 JobExecution
 ```
 
 ### 2. Chunk 处理模式（核心机制）

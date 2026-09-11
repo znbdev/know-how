@@ -151,7 +151,131 @@ public Step step1() {
 }
 ```
 
-### 2. 重试与跳过机制
+### 2. 元数据表结构
+
+Spring Batch 使用以下元数据表来管理作业执行状态：
+
+#### 核心表
+
+| 表名 | 用途 | 关键字段 |
+|------|------|----------|
+| **BATCH_JOB_INSTANCE** | 作业实例表 | JOB_INSTANCE_ID, JOB_NAME, JOB_KEY |
+| **BATCH_JOB_EXECUTION** | 作业执行表 | JOB_EXECUTION_ID, JOB_INSTANCE_ID, STATUS, START_TIME, END_TIME |
+| **BATCH_JOB_EXECUTION_PARAMS** | 作业参数表 | JOB_EXECUTION_ID, PARAMETER_NAME, PARAMETER_VALUE |
+| **BATCH_STEP_EXECUTION** | 步骤执行表 | STEP_EXECUTION_ID, STEP_NAME, JOB_EXECUTION_ID, COMMIT_COUNT, READ_COUNT, WRITE_COUNT |
+| **BATCH_STEP_EXECUTION_CONTEXT** | 步骤执行上下文表 | STEP_EXECUTION_ID, SHORT_CONTEXT, SERIALIZED_CONTEXT |
+| **BATCH_JOB_EXECUTION_CONTEXT** | 作业执行上下文表 | JOB_EXECUTION_ID, SHORT_CONTEXT, SERIALIZED_CONTEXT |
+
+#### 序列表
+
+| 表名 | 用途 |
+|------|------|
+| **BATCH_JOB_INSTANCE_SEQ** | 作业实例ID序列 |
+| **BATCH_JOB_EXECUTION_SEQ** | 作业执行ID序列 |
+| **BATCH_STEP_EXECUTION_SEQ** | 步骤执行ID序列 |
+
+#### 表关系
+
+```mermaid
+erDiagram
+    BATCH_JOB_INSTANCE ||--o{ BATCH_JOB_EXECUTION : "has"
+    BATCH_JOB_EXECUTION ||--o{ BATCH_STEP_EXECUTION : "has"
+    BATCH_JOB_EXECUTION ||--o{ BATCH_JOB_EXECUTION_PARAMS : "has"
+    BATCH_JOB_EXECUTION ||--o| BATCH_JOB_EXECUTION_CONTEXT : "has"
+    BATCH_STEP_EXECUTION ||--o| BATCH_STEP_EXECUTION_CONTEXT : "has"
+
+    BATCH_JOB_INSTANCE {
+        BIGINT JOB_INSTANCE_ID PK
+        BIGINT VERSION
+        VARCHAR JOB_NAME
+        VARCHAR JOB_KEY
+    }
+
+    BATCH_JOB_EXECUTION {
+        BIGINT JOB_EXECUTION_ID PK
+        BIGINT VERSION
+        BIGINT JOB_INSTANCE_ID FK
+        DATETIME CREATE_TIME
+        DATETIME START_TIME
+        DATETIME END_TIME
+        VARCHAR STATUS
+        VARCHAR EXIT_CODE
+        VARCHAR EXIT_MESSAGE
+        DATETIME LAST_UPDATED
+    }
+
+    BATCH_JOB_EXECUTION_PARAMS {
+        BIGINT JOB_EXECUTION_ID FK
+        VARCHAR PARAMETER_NAME
+        VARCHAR PARAMETER_TYPE
+        VARCHAR PARAMETER_VALUE
+        CHAR IDENTIFYING
+    }
+
+    BATCH_STEP_EXECUTION {
+        BIGINT STEP_EXECUTION_ID PK
+        BIGINT VERSION
+        VARCHAR STEP_NAME
+        BIGINT JOB_EXECUTION_ID FK
+        DATETIME CREATE_TIME
+        DATETIME START_TIME
+        DATETIME END_TIME
+        VARCHAR STATUS
+        BIGINT COMMIT_COUNT
+        BIGINT READ_COUNT
+        BIGINT FILTER_COUNT
+        BIGINT WRITE_COUNT
+        BIGINT READ_SKIP_COUNT
+        BIGINT WRITE_SKIP_COUNT
+        BIGINT PROCESS_SKIP_COUNT
+        BIGINT ROLLBACK_COUNT
+        VARCHAR EXIT_CODE
+        VARCHAR EXIT_MESSAGE
+        DATETIME LAST_UPDATED
+    }
+
+    BATCH_STEP_EXECUTION_CONTEXT {
+        BIGINT STEP_EXECUTION_ID PK,FK
+        VARCHAR SHORT_CONTEXT
+        TEXT SERIALIZED_CONTEXT
+    }
+
+    BATCH_JOB_EXECUTION_CONTEXT {
+        BIGINT JOB_EXECUTION_ID PK,FK
+        VARCHAR SHORT_CONTEXT
+        TEXT SERIALIZED_CONTEXT
+    }
+```
+
+#### 主要字段说明
+
+**BATCH_JOB_INSTANCE**
+- `JOB_INSTANCE_ID`: 作业实例唯一标识
+- `JOB_NAME`: 作业名称
+- `JOB_KEY`: 作业参数的哈希值，用于唯一标识作业实例
+
+**BATCH_JOB_EXECUTION**
+- `JOB_EXECUTION_ID`: 作业执行唯一标识
+- `STATUS`: 执行状态（STARTED, COMPLETED, FAILED等）
+- `START_TIME`: 开始时间
+- `END_TIME`: 结束时间
+- `EXIT_CODE`: 退出代码
+- `EXIT_MESSAGE`: 退出消息
+
+**BATCH_STEP_EXECUTION**
+- `STEP_EXECUTION_ID`: 步骤执行唯一标识
+- `STEP_NAME`: 步骤名称
+- `COMMIT_COUNT`: 提交次数
+- `READ_COUNT`: 读取记录数
+- `WRITE_COUNT`: 写入记录数
+- `FILTER_COUNT`: 过滤记录数
+- `ROLLBACK_COUNT`: 回滚次数
+
+#### 版本控制
+
+所有表都包含 `VERSION` 字段，用于乐观锁控制。每次更新记录时，版本号自动递增，确保并发安全。
+
+### 3. 重试与跳过机制
 
 **重试（Retry）：**
 - 针对临时性故障（网络抖动、死锁等）
@@ -179,7 +303,7 @@ public Step step1() {
 }
 ```
 
-### 3. 并行处理
+### 4. 并行处理
 
 **多线程 Step：**
 ```java
@@ -218,7 +342,7 @@ public Flow splitFlow() {
 - 每个分区由独立的 worker step 处理
 - 适合大规模数据处理
 
-### 4. 作业监听器
+### 5. 作业监听器
 
 在不同生命周期节点执行自定义逻辑：
 - `JobExecutionListener`: 作业前后

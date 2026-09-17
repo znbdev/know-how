@@ -300,14 +300,110 @@ C4Context
 
 ## 14. 桑基图 (Sankey Diagram)
 
+桑基图（Sankey Diagram）是一种用于可视化数据流动和转换的图表，箭头宽度表示流量大小。适用于展示用户行为路径、能源流向、预算分配等场景。
+
+### 基础语法
+
 ```mermaid
-sankey
-网店访问量,提交订单,5000
-网店访问量,直接离开,15000
-提交订单,完成支付,4200
-提交订单,放弃支付,800
-完成支付,确认收货,4000
-完成支付,申请退款,200
+sankey-beta
+ShopVisits,SubmitOrder,5000
+ShopVisits,LeaveDirectly,15000
+SubmitOrder,CompletePayment,4200
+SubmitOrder,AbandonPayment,800
+CompletePayment,ConfirmReceipt,4000
+CompletePayment,ApplyRefund,200
+```
+
+### 语法说明
+
+* **`sankey-beta`**: 声明桑基图的关键字（实验性功能，v10.3.0+）。
+* **CSV 格式**: 每行包含三个逗号分隔的值：`源节点,目标节点,流量值`。
+    * **源节点 (source)**: 流量的起始节点名称。
+    * **目标节点 (target)**: 流量的结束节点名称。
+    * **流量值 (value)**: 数值，决定箭头宽度（必须为正数）。
+* **空行**: 可以在数据行之间添加空行以提高可读性。
+* **特殊字符处理**:
+    * 包含逗号的文本需要用双引号包裹：`Pumped heat,"Heating and cooling, homes",193.0`
+    * 包含双引号的文本需要转义：`Pumped heat,"Heating and cooling, ""homes""",193.0`
+* **注释**: 使用 `%%` 添加注释。
+
+### 配置选项
+
+通过 `<script>` 标签配置图表样式：
+
+```html
+<script>
+  const config = {
+    startOnLoad: true,
+    securityLevel: 'loose',
+    sankey: {
+      width: 800,           // 图表宽度（像素）
+      height: 400,          // 图表高度（像素）
+      linkColor: 'source',  // 连接线颜色模式
+      nodeAlignment: 'left', // 节点对齐方式
+    },
+  };
+  mermaid.initialize(config);
+</script>
+```
+
+#### 连接线颜色 (`linkColor`)
+
+* **`source`**: 颜色与源节点一致（默认）。
+* **`target`**: 颜色与目标节点一致。
+* **`gradient`**: 颜色从源节点渐变到目标节点。
+* **十六进制颜色码**: 指定固定颜色，如 `#a1a1a1`。
+
+#### 节点对齐方式 (`nodeAlignment`)
+
+* **`justify`**: 两端对齐。
+* **`center`**: 居中对齐。
+* **`left`**: 左对齐（默认）。
+* **`right`**: 右对齐。
+
+### 进阶示例：多层级数据流
+
+```mermaid
+sankey-beta
+EnergySource,PowerGeneration,500
+EnergySource,Heating,300
+PowerGeneration,IndustrialUse,250
+PowerGeneration,ResidentialUse,200
+PowerGeneration,Losses,50
+Heating,IndustrialHeat,150
+Heating,ResidentialHeat,150
+```
+
+### 标签样式 (`labelStyle`, v11.15.0+)
+
+* **`legacy`**: 默认样式，纯文本标签。
+* **`outlined`**: 带背景描边的标签，提高可读性。
+
+### 节点尺寸 (`nodeWidth` 和 `nodePadding`, v11.15.0+)
+
+* **`nodeWidth`**: 节点矩形宽度（像素），默认 `10`。
+* **`nodePadding`**: 节点间垂直间距（像素），默认 `12`。
+
+### 自定义节点颜色 (`nodeColors`, v11.15.0+)
+
+可以为特定节点指定颜色：
+
+```html
+<script>
+  const config = {
+    startOnLoad: true,
+    securityLevel: 'loose',
+    sankey: {
+      nodeColors: [
+        '#FF6B6B',  // 第一个节点颜色
+        '#4ECDC4',  // 第二个节点颜色
+        '#45B7D1',  // 第三个节点颜色
+        '#96CEB4',  // 第四个节点颜色
+      ]
+    },
+  };
+  mermaid.initialize(config);
+</script>
 ```
 
 ## 15. XY 轴图 (XY Chart)

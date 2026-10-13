@@ -235,7 +235,7 @@ Oracle の Redo ログ / 拡張ロギング（Supplemental Logging） を読み�
 | **変更があった時のみ** D を更新 | **水位（Watermark）比較**で A/B/C の変更有無を判定し、変更なしなら本処理を抑止 |
 | D の変更履歴 → E | **推奨：PostgreSQL の AFTER ROW トリガー**（Informatica を汚さない）。代替：Mapping 内ダブルライト |
 | 3時間毎 | ワークフローのスケジュール Repeat（00:00 / 03:00 / 06:00 …）＋ 多重起動防止 |
-| Oracle → PostgreSQL | タイプ変換・識別子小文字化・日時型・UPSERT 対応（§8） |
+| Oracle → PostgreSQL | タイプ変換・識別子小文字化・日時型・UPSERT 対応（§9） |
 
 ## 2. 前提条件と水位管理表
 
@@ -338,9 +338,138 @@ WHEN MATCHED THEN UPDATE SET
 
 > 「変更がない不要なタイミングでは処理を実行しない」を厳密に満たすのは **案 A**。開発工数を最小にしたい場合は **案 B** で「書き込みゼロ」を保証する構成でも要件を満たします。
 
-## 5. Mapping 設計（m_build_D）
+## 5. 誤検知（False Positive）の防止 — A が事主表、B/C が補助表の場合
 
-### 5.1 データフロー
+### 5.1 何が起きるか
+
+水位が「テーブル単位・全列」の `MAX(UPDATED_AT)` / `COUNT(*)` だけだと、**D の生成に影響しない列の UPDATE** でも「変更あり」と誤判定します。
+例：C の更新列が D に使われない列（補助表のメモ列等）だった場合：
+
+1. 水位が進む → 本処理（D 再生成）が 1 回実行される（**誤起動**）
+2. D の内容は不変 → UPSERT なら同値 UPDATE のみ（WAL・死 tuple 増）、全再構築なら全表書換
+3. E の履歴：UPSERT + トリガー比較なら誤記録なし。ただし D に `LOAD_TS` 等の技術列があると全行が「実変更」となり履歴が肥大
+
+### 5.2 誤検知を生む 2 つの要因と、2 段フィルタ
+
+誤検知は「**列スコープ**」と「**行スコープ**」に分解できます。A（事主）→ B → C（補助）という FK カスケードがあるため、**A から参照される行だけが D に影響する**という性質を併用します。
+
+```
+                     C テーブルで UPDATE が発生
+                              │
+              ┌───────────────▼────────────────┐
+   ① 列スコープ判定 │  D 生成に使う列が変化したか？   │
+              │  （使用列のみ比較 / ハッシュ化）    │
+              └───────────────┬────────────────┘
+                      いいえ │            │ はい
+        ┌────────────────────┘             ▼
+        │                      ┌─────────────────────────┐
+        │                      │ ② 行スコープ判定          │
+        │                      │  A → B → C の FK で      │
+        │                      │  A から参照される行か？    │
+        │                      └────────────┬────────────┘
+        │                          いいえ │             │ はい
+        ▼                                  ▼             ▼
+  水位は進まない                      水位は進まない     水位が進む
+  → D の再生成を行わない              （参照外の行）     → D 再生成 + E 記録
+  （誤検知を防止）                    （誤検知を防止）     （正検知）
+```
+
+### 5.3 案1：使用列ハッシュ水位（追加構成不要・推奨）
+
+水位表の保持値を「`MAX(UPDATED_AT)`」から「**使用列のみを連結したハッシュの合計 + 行数**」に変更します。行範囲は `EXISTS` で A から参照される行に限定します（FK 列へのインデックスが必須）。
+
+```sql
+CREATE TABLE ETL_WMARK (
+  TABLE_NAME VARCHAR2(30) PRIMARY KEY,
+  HASH_VAL   NUMBER,      -- 使用列ハッシュの合計
+  ROW_CNT    NUMBER,
+  CHECKED_TS TIMESTAMP
+);
+```
+
+```sql
+-- C：A の参照チェーン上の行のみ、D で使用する列のみをハッシュ化
+SELECT NVL(SUM(ORA_HASH(
+         NVL(TO_CHAR(c.use_col1),'#') || '|' ||
+         NVL(TO_CHAR(c.use_col2),'#'))), 0) AS HASH_VAL,
+       COUNT(*) AS CNT
+FROM C c
+WHERE EXISTS (SELECT 1 FROM B b
+               WHERE b.c_id = c.c_id
+                 AND EXISTS (SELECT 1 FROM A a WHERE a.b_id = b.b_id));
+
+-- B：B の使用列のみハッシュ、行範囲は A に参照される B のみ
+-- A：事主表。使用列のみハッシュ（LOAD_TS 等の技術列は除外）
+```
+
+判定は §4.1 と同様、`HASH_VAL` または `ROW_CNT` が前回と相違すれば「変更あり」。
+
+* 使用外列の UPDATE → ハッシュ不変 → 誤検知なし
+* 参照外行の UPDATE/DELETE → `EXISTS` で除外 → 誤検知なし
+* INSERT / DELETE → `ROW_CNT` の変化で検知
+* 代償：3 時間毎に「参照行のハッシュ集計」が走る（中小テーブル向き）
+
+### 5.4 案2：使用列トリガー + 変更ログ（チェックを最軽量化）
+
+DML 時点で「使用列が変わった行」だけをログに残し、3 時間毎のチェックは `COUNT(*)` だけにします。
+
+```sql
+CREATE TABLE C_CHG (C_ID NUMBER, CHG_TS TIMESTAMP);
+
+CREATE OR REPLACE TRIGGER trg_c_chg
+AFTER INSERT OR UPDATE OR DELETE ON C
+FOR EACH ROW
+BEGIN
+  IF INSERTING
+     OR NVL(:NEW.use_col1,CHR(0)) <> NVL(:OLD.use_col1,CHR(0))
+     OR NVL(:NEW.use_col2,CHR(0)) <> NVL(:OLD.use_col2,CHR(0)) THEN
+    INSERT INTO C_CHG(C_ID, CHG_TS)
+    VALUES (NVL(:NEW.C_ID, :OLD.C_ID), SYSTIMESTAMP);  -- 使用外列は記録されない
+  END IF;
+END;
+/
+```
+
+```sql
+-- 3 時間毎のチェック（行スコープはチェック側で適用）
+SELECT COUNT(*) FROM C_CHG c
+WHERE c.CHG_TS > (SELECT MAX_UPD_TS FROM ETL_WMARK WHERE TABLE_NAME='C')
+  AND EXISTS (SELECT 1 FROM B b JOIN A a ON a.b_id = b.b_id
+               WHERE b.c_id = c.C_ID);  -- A に参照されない変更は無視
+```
+
+`EXISTS` をトリガー内に置かない（業務 DML を遅くしないため）。記録は全件、絞り込みはチェック側で行います。
+
+### 5.5 案3：快速リフレッシュ・マテビュー（列精度は Oracle が保証）
+
+```sql
+CREATE MATERIALIZED VIEW LOG ON C
+  WITH ROWID, SEQUENCE (use_col1, use_col2)  -- 使用列のみ指定
+  INCLUDING NEW VALUES;
+```
+
+MV ログは**指定列に変化があった行だけ**を記録するため、列スコープの絞り込みが宣言的に成立します。`MVIEW$_LOG` の行数/時刻を水位にすれば、チェックはさらに軽くなります。D の再構築が重く「変更キーだけの部分再集計」を狙う場合に適合します。
+
+### 5.6 方式比較
+
+| | 案1：ハッシュ水位 | 案2：トリガー + 変更ログ | 案3：マテビュー |
+|---|---|---|---|
+| 列スコープ（使用列のみ） | 可（手書き） | 可（トリガー条件） | 可（列指定） |
+| 行スコープ（A 参照のみ） | 可（EXISTS） | 可（チェック側 EXISTS） | 部分的（ログは全行） |
+| 3 時間毎のチェック負荷 | 中（参照行を集計） | **最小**（COUNT のみ） | 小 |
+| 本番 DB 負荷 | ゼロ | DML 時に微増 | DML 時にログ書込 |
+| 追加ライセンス | 不要 | 不要 | 不要 |
+| 向く場面 | 中小テーブル・列数が少ない | 大テーブル・変更頻度が高い | D 再構築が重い |
+
+### 5.7 併せて行う対策
+
+* **A（事主表）も同様に**使用列のみをハッシュ/比較し、`LOAD_TS`・`BATCH_ID` 等の技術列は水位計算から除外する。
+* **E の履歴トリガー**も技術列を除外する（`to_jsonb(OLD) IS DISTINCT FROM to_jsonb(NEW)` を業務列に絞る、または業務列ハッシュ列 `D_HASH` を D に持たせて比較する）。
+* 最適化：変更キーの一覧を Mapping に渡し、**影響する集約キーだけを再集計 → UPSERT** する部分再構築にすれば、「誤検知なし」かつ「変更時も差分だけ」になります。
+
+## 6. Mapping 設計（m_build_D）
+
+### 6.1 データフロー
 
 ```
 [A (Oracle)] ──┐
@@ -361,7 +490,7 @@ WHEN MATCHED THEN UPDATE SET
 [Update Strategy] ──► [D (PostgreSQL)]
 ```
 
-### 5.2 設計上のポイント
+### 6.2 設計上のポイント
 
 * **結合方向**：A は B を、B は C を参照する（FK）ため、`A → B → C` の順に Joiner を接続。FK の整合性が保証されているので **INNER JOIN** でよい。
 * **ソート結合**：Source Qualifier の ORDER BY または Oracle 側インデックスで整列してから **Sorted Merge Joiner** を使うと負荷が大きく下がる。
@@ -379,14 +508,14 @@ FROM a JOIN b ON a.b_id = b.b_id
 GROUP BY a.a_id, a.area, b.b_class, c.c_type;
 ```
 
-### 5.3 D の書き込み方法の2パターン
+### 6.3 D の書き込み方法の2パターン
 
 | パターン | 内容 | 用途 |
 |---|---|---|
 | **1. 差分反映（UPSERT）※推奨** | Lookup(D) で存在確認し、新規=DD_INSERT / 既存=DD_UPDATE / 新セットに無い行=DD_DELETE。PostgreSQL ターゲットの Insert / Update を両方有効化 | D が他システムから常に読まれる場合。D が空になる時間帯ができない |
 | 2. 全再構築 | セッションの「Issue Truncate」＋ 一時テーブル D_NEW に全件ロード → `ALTER TABLE ... RENAME` で瞬時に切り替え | 集計が重く差分化できない場合。切り替えが原子的 |
 
-## 6. E テーブル（D の変更履歴）の自動生成
+## 7. E テーブル（D の変更履歴）の自動生成
 
 ### 方式 1：PostgreSQL トリガー（推奨）
 
@@ -448,7 +577,7 @@ Lookup D（旧値取得） ─► Expression（v_FLAG: INSERT/UPDATE/DELETE/NO_C
 | 本番負荷 | PG 側に微負荷 | ETL セッション内で完結 |
 | 推奨用途 | **本方案** | トリガー禁止ポリシーがある環境 |
 
-## 7. 3時間毎のスケジュール設定
+## 8. 3時間毎のスケジュール設定
 
 | 環境 | 設定箇所 |
 |---|---|
@@ -462,7 +591,7 @@ Lookup D（旧値取得） ─► Expression（v_FLAG: INSERT/UPDATE/DELETE/NO_C
 * 前回実行が長引いた場合：次の3時間境界で前バッチの終了を **Event Wait / Predecessor** で待ち、二重実行を防ぐ。
 * 遅延が発生しても水位が前進していれば「変更なし」と判定されるため、**取りこぼしは発生しない**（差分は常に水位比較で捕捉される）。
 
-## 8. Oracle → PostgreSQL 移行時の変換ポイント
+## 9. Oracle → PostgreSQL 移行時の変換ポイント
 
 | Oracle | PostgreSQL | 備考 |
 |---|---|---|
@@ -477,7 +606,7 @@ Lookup D（旧値取得） ─► Expression（v_FLAG: INSERT/UPDATE/DELETE/NO_C
 | 空文字 `''` | `NULL` | Oracle は `''`=`NULL`。PostgreSQL は別物。Informatica 側で明示変換 |
 | `NVL` / `DECODE` | `COALESCE` / `CASE` | SQL Override を書く場合に注意 |
 
-## 9. 実装チェックリスト
+## 10. 実装チェックリスト
 
 * [ ] A/B/C に PK・`UPDATED_AT` を追加（無い場合）。削除検知は `COUNT(*)` 差分または論理削除フラグ化
 * [ ] Oracle に `ETL_WMARK`（水位管理表）を作成し、初期投入
@@ -491,7 +620,7 @@ Lookup D（旧値取得） ─► Expression（v_FLAG: INSERT/UPDATE/DELETE/NO_C
 * [ ] 初回実行：水位が NULL のため全量一致＝変更ありと判定され、D が初期構築される（初回ロードを兼ねる）
 * [ ] 失敗時リトライ、Email 通知、実行ログ（スキップ/実行の記録）を整備
 
-## 10. 運用上の注意
+## 11. 運用上の注意
 
 * **負荷**：3時間毎の水位チェックは 3 テーブルの `MAX`/`COUNT` のみで極めて軽い。ただし `UPDATED_AT` にインデックスが無いと全件スキャンになるため、**`UPDATED_AT` への索引作成は必須**。
 * **集計コスト**：A/B/C の結合・集約が重い場合は、Oracle 側のマテビュー（`REFRESH FAST ON DEMAND`）を検討。マテビュー更新自体も変更検知の対象にできる。

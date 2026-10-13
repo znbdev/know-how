@@ -222,4 +222,280 @@ Oracle の Redo ログ / 拡張ロギング（Supplemental Logging） を読み�
 
 ---
 
+# Informatica 実装方案：Oracle(A/B/C) → PostgreSQL(D) ＋ 変更履歴(E) ／ 変更時のみ・3時間毎
+
+本ドキュメントは、上記の要件を Informatica（PowerCenter / IDMC）で実現するための設計方案です。Oracle に存在する A・B・C（カスケード FK）を結合・集約して PostgreSQL の D を生成し、D の変更履歴を E に自動蓄積する構成を解説します。
+
+## 1. 要件 → 実装方針の対応
+
+| 要件 | 実装方針 |
+|---|---|
+| A→B→C のカスケード参照 | FK 保証があるため結合は **INNER JOIN** で欠損なし。Informatica の Joiner（または Oracle 側ビュー）で結合 |
+| A+B+C 結合・集約 → D | Mapping `m_build_D`：Source Qualifier → Joiner ×2 → Aggregator → Update Strategy |
+| **変更があった時のみ** D を更新 | **水位（Watermark）比較**で A/B/C の変更有無を判定し、変更なしなら本処理を抑止 |
+| D の変更履歴 → E | **推奨：PostgreSQL の AFTER ROW トリガー**（Informatica を汚さない）。代替：Mapping 内ダブルライト |
+| 3時間毎 | ワークフローのスケジュール Repeat（00:00 / 03:00 / 06:00 …）＋ 多重起動防止 |
+| Oracle → PostgreSQL | タイプ変換・識別子小文字化・日時型・UPSERT 対応（§8） |
+
+## 2. 前提条件と水位管理表
+
+### 2.1 前提
+
+* A/B/C には **主キー（PK）** と **`UPDATED_AT`（最終更新日時）** が存在する。
+* 削除（DELETE）は `MAX(UPDATED_AT)` では検知できないため、**`COUNT(*)` 併用** または **論理削除フラグ（`DEL_FLG` + `UPDATED_AT`）** で検知する。
+* D は PostgreSQL 側の集計結果テーブル、E は PostgreSQL 側の履歴テーブル。
+
+### 2.2 水位管理表（Oracle 側・1行 = 1テーブル）
+
+```sql
+CREATE TABLE ETL_WMARK (
+  TABLE_NAME  VARCHAR2(30) NOT NULL PRIMARY KEY,  -- 'A','B','C'
+  MAX_UPD_TS  TIMESTAMP,                          -- 最終更新日時の最大値
+  ROW_CNT     NUMBER,                             -- 行数（DELETE検知用）
+  CHECKED_TS  TIMESTAMP                           -- 最終チェック日時
+);
+INSERT INTO ETL_WMARK VALUES ('A', NULL, NULL, NULL);
+INSERT INTO ETL_WMARK VALUES ('B', NULL, NULL, NULL);
+INSERT INTO ETL_WMARK VALUES ('C', NULL, NULL, NULL);
+```
+
+> 水位表を Oracle（ソース）側に置くことで、変更チェックを **1本の SQL** で完結させ、ソースへの負荷を最小化できます。
+
+## 3. 全体アーキテクチャ
+
+```
+【Oracle】
+  A ──FK──► B ──FK──► C        （A→B→C カスケード）
+   │          │          │
+   └── 毎3時間：MAX(UPDATED_AT) / COUNT(*) を水位(ETL_WMARK)と比較 ──┐
+                                                                      ▼
+【Informatica PowerCenter】
+  [スケジュール: 毎3時間]
+   ├─ WF1_CHG_CHECK（変更チェック）
+   │    Command タスク：水位比較 SQL を実行
+   │      ├─ 変更あり → pmcmd で WF2_BUILD_D を起動
+   │      └─ 変更なし → 何もしない（Email/ログのみ）
+   │
+   └─ WF2_BUILD_D（本処理・変更時のみ起動）
+        Session m_build_D:
+        Oracle A/B/C → Joiner → Aggregator → Lookup(D) → Update Strategy
+                                       │
+                                       ▼
+【PostgreSQL】
+  D（集計結果）── AFTER TRIGGER ──► E（変更履歴）
+  Post-SQL: ETL_WMARK を更新（成功時のみ水位を進める）
+```
+
+**ポイント**
+
+* 「3時間毎に起動」するのは**チェックだけ**。実データの抽出・結合・書き込みは変更がある時だけ実行されます。
+* 水位更新は **本処理成功後の Post-SQL** で行うため、失敗時は水位が進まず、次回スケジュールで自動的に再処理されます（リトライ安全）。
+
+## 4. 変更検知（トリガー条件）の実装
+
+### 4.1 変更チェック SQL（Command タスク内 / Pre-Session SQL）
+
+```sql
+SELECT COUNT(*) AS CHG_CNT
+FROM (
+  SELECT 'A' AS TBL, MAX(UPDATED_AT) AS TS, COUNT(*) AS CNT FROM A
+  UNION ALL SELECT 'B', MAX(UPDATED_AT), COUNT(*) FROM B
+  UNION ALL SELECT 'C', MAX(UPDATED_AT), COUNT(*) FROM C
+) s
+JOIN ETL_WMARK w ON w.TABLE_NAME = s.TBL
+WHERE NVL(s.TS, TO_DATE('19700101','YYYYMMDD')) <> NVL(w.MAX_UPD_TS, TO_DATE('19700101','YYYYMMDD'))
+   OR NVL(s.CNT, -1) <> NVL(w.CNT, -1);
+-- 0        → 変更なし（本処理をスキップ）
+-- 1以上    → 変更あり（D の再生成/更新を実行）
+```
+
+### 4.2 水位更新 SQL（本処理成功後の Post-SQL / Command）
+
+```sql
+MERGE INTO ETL_WMARK w
+USING (
+  SELECT T, MAX(UPDATED_AT) AS TS, COUNT(*) AS CNT
+  FROM (
+    SELECT 'A' T, UPDATED_AT FROM A
+    UNION ALL SELECT 'B', UPDATED_AT FROM B
+    UNION ALL SELECT 'C', UPDATED_AT FROM C
+  ) GROUP BY T
+) s ON (w.TABLE_NAME = s.T)
+WHEN MATCHED THEN UPDATE SET
+  w.MAX_UPD_TS = s.TS,
+  w.ROW_CNT    = s.CNT,
+  w.CHECKED_TS = SYSTIMESTAMP;
+```
+
+### 4.3 実装方式の比較
+
+| 案 | 内容 | 長所 | 短所 |
+|---|---|---|---|
+| **A（推奨）** | 毎3時間の起点を「チェック用ワークフロー」にし、Command タスク（sqlplus）で水位比較 → **変更ありの場合のみ `pmcmd` で本処理ワークフローを起動** | セッション自体が起動しない＝無駄な処理が一切発生しない。確実でどの PowerCenter 版でも可 | シェル + pmcmd のラッパーが必要 |
+| B | 本処理マッピング内で Source Qualifier（SQL Override）により「変更フラグ 1 行」を生成 → Router で分岐。変更なしなら 0 行が流れ、D/E への書き込みも発生しない | 追加ワークフロー不要。バージョン依存なし | セッションは起動する（軽量な水位クエリのみ） |
+| C | Pre-Session SQL で水位比較結果を `$$CHG` 等に取得し、Decision タスクで本セッションを条件分岐 | 単一ワークフローで完結 | 変数取得の構文がバージョン・設定に依存 |
+| D | Oracle 側トリガーで「変更フラグ表」に即時反映、または PWX / Cloud CDC でログベース変更検知 | リアルタイム性が高い | 追加ライセンス・ソース側トリガー運用が必要 |
+
+> 「変更がない不要なタイミングでは処理を実行しない」を厳密に満たすのは **案 A**。開発工数を最小にしたい場合は **案 B** で「書き込みゼロ」を保証する構成でも要件を満たします。
+
+## 5. Mapping 設計（m_build_D）
+
+### 5.1 データフロー
+
+```
+[A (Oracle)] ──┐
+                ├─► [Joiner J1: A.B_ID = B.B_ID] ─┐
+[B (Oracle)] ───┘                                  ├─► [Joiner J2: B.C_ID = C.C_ID]
+                                                   │
+[C (Oracle)] ──────────────────────────────────────┘
+      │
+      ▼
+[Expression: 派生列・日付/型変換（Oracle→PG）]
+      ▼
+[Aggregator: GROUP BY 集約キー + SUM/COUNT/MAX]
+      ▼
+[Lookup D (PostgreSQL): 主キーで既存有無を確認]
+      ▼
+[Router / Expression: 新規=DD_INSERT, 既存=DD_UPDATE, 消滅=DD_DELETE]
+      ▼
+[Update Strategy] ──► [D (PostgreSQL)]
+```
+
+### 5.2 設計上のポイント
+
+* **結合方向**：A は B を、B は C を参照する（FK）ため、`A → B → C` の順に Joiner を接続。FK の整合性が保証されているので **INNER JOIN** でよい。
+* **ソート結合**：Source Qualifier の ORDER BY または Oracle 側インデックスで整列してから **Sorted Merge Joiner** を使うと負荷が大きく下がる。
+* **結合の事前実行（性能対策）**：A/B/C の結合が重い場合は、Oracle 側に **ビュー / マテビュー `V_AB_C`** を作り、単一ソース化して Informatica では集約のみ行う構成を推奨。
+* **集約ロジックの例**：
+
+```sql
+-- D の生成ロジックイメージ
+SELECT a.a_id, a.area, b.b_class, c.c_type,
+       COUNT(*)        AS rec_cnt,
+       SUM(a.amount)   AS sum_amt,
+       MAX(c.price)    AS max_price
+FROM a JOIN b ON a.b_id = b.b_id
+       JOIN c ON b.c_id = c.c_id
+GROUP BY a.a_id, a.area, b.b_class, c.c_type;
+```
+
+### 5.3 D の書き込み方法の2パターン
+
+| パターン | 内容 | 用途 |
+|---|---|---|
+| **1. 差分反映（UPSERT）※推奨** | Lookup(D) で存在確認し、新規=DD_INSERT / 既存=DD_UPDATE / 新セットに無い行=DD_DELETE。PostgreSQL ターゲットの Insert / Update を両方有効化 | D が他システムから常に読まれる場合。D が空になる時間帯ができない |
+| 2. 全再構築 | セッションの「Issue Truncate」＋ 一時テーブル D_NEW に全件ロード → `ALTER TABLE ... RENAME` で瞬時に切り替え | 集計が重く差分化できない場合。切り替えが原子的 |
+
+## 6. E テーブル（D の変更履歴）の自動生成
+
+### 方式 1：PostgreSQL トリガー（推奨）
+
+Informatica は D への書き込みのみを行い、履歴は PostgreSQL 側トリガーに完全委譲します。マッピングが単純になり、D を直接更新する他の経路（手動 SQL 等）でも履歴が残ります。
+
+```sql
+-- E（履歴表）
+CREATE TABLE D_HIST (
+  HIST_ID    BIGSERIAL PRIMARY KEY,
+  D_KEY      JSONB,                -- 主キー（丸ごと保持）
+  CHG_TYPE   VARCHAR(1) NOT NULL,  -- I / U / D
+  OLD_VAL    JSONB,
+  NEW_VAL    JSONB,
+  BATCH_ID   VARCHAR(50),          -- Informatica セッション/バッチID
+  CHG_TS     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_d_hist_ts ON D_HIST (CHG_TS);
+
+CREATE OR REPLACE FUNCTION fn_d_audit() RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO D_HIST(D_KEY, CHG_TYPE, OLD_VAL, NEW_VAL, BATCH_ID)
+    VALUES (to_jsonb(NEW), 'I', NULL, to_jsonb(NEW), current_setting('app.batch_id', TRUE));
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF to_jsonb(OLD) IS DISTINCT FROM to_jsonb(NEW) THEN   -- 実際に変化した行のみ
+      INSERT INTO D_HIST(D_KEY, CHG_TYPE, OLD_VAL, NEW_VAL, BATCH_ID)
+      VALUES (to_jsonb(NEW), 'U', to_jsonb(OLD), to_jsonb(NEW), current_setting('app.batch_id', TRUE));
+    END IF;
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO D_HIST(D_KEY, CHG_TYPE, OLD_VAL, NEW_VAL, BATCH_ID)
+    VALUES (to_jsonb(OLD), 'D', to_jsonb(OLD), NULL, current_setting('app.batch_id', TRUE));
+  END IF;
+  RETURN NULL;  -- AFTER トリガーなので戻り値は不要
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_d_audit
+AFTER INSERT OR UPDATE OR DELETE ON D
+FOR EACH ROW EXECUTE FUNCTION fn_d_audit();
+```
+
+* `BATCH_ID` は Informatica のセッション Pre-SQL（PostgreSQL 接続）で `SELECT set_config('app.batch_id', '$$BATCH_ID', false);` と設定しておけば、履歴からどのバッチの产物かを追跡できます。
+* `to_jsonb(OLD) IS DISTINCT FROM to_jsonb(NEW)` により、値が実質変化しない UPDATE（同値書き込み）では履歴が増えない。
+
+### 方式 2：Informatica 内でダブルライト
+
+PostgreSQL トリガーを使わず、マッピング内で履歴を作る方式（冒頭「アプローチ1」と同じ発想）。
+
+```
+Lookup D（旧値取得） ─► Expression（v_FLAG: INSERT/UPDATE/DELETE/NO_CHANGE 判定）
+      ─► Router ─┬─ DD_UPDATE / DD_INSERT ─► D
+                 └─ Expression（sysdate, BATCH_ID 付与） ─► E（常に INSERT）
+```
+
+| | 方式1：PGトリガー | 方式2：Mapping ダブルライト |
+|---|---|---|
+| 開発工数 | 少ない（DDL のみ） | 大きい（Lookup/Router/Update Strategy） |
+| 履歴の一貫性 | D への全経路を捕捉（手動 SQL も含む） | Informatica 経由のみ |
+| 本番負荷 | PG 側に微負荷 | ETL セッション内で完結 |
+| 推奨用途 | **本方案** | トリガー禁止ポリシーがある環境 |
+
+## 7. 3時間毎のスケジュール設定
+
+| 環境 | 設定箇所 |
+|---|---|
+| PowerCenter | Workflow → Scheduling → **Repeat: Every 3 hours**（開始時刻を 00:00 等の境界に合わせる） |
+| Control-M 等の外部スケジューラ | 00:00 / 03:00 / 06:00 … にワークフローを定義し、Informatica 側スケジュールは無効化 |
+| IDMC（クラウド） | Task/Task Flow の Schedule → **Repeat → Interval: 3 hours** |
+
+**多重起動防止**
+
+* ワークフローの「Allow concurrent run」を無効化する。
+* 前回実行が長引いた場合：次の3時間境界で前バッチの終了を **Event Wait / Predecessor** で待ち、二重実行を防ぐ。
+* 遅延が発生しても水位が前進していれば「変更なし」と判定されるため、**取りこぼしは発生しない**（差分は常に水位比較で捕捉される）。
+
+## 8. Oracle → PostgreSQL 移行時の変換ポイント
+
+| Oracle | PostgreSQL | 備考 |
+|---|---|---|
+| 識別子（表名・列名）大文字 | 小文字（クォートなし） | Informatica のソース/ターゲット定義名を小文字に統一 |
+| `NUMBER` | `INTEGER` / `BIGINT` / `NUMERIC` | 集計値は精度優先で `NUMERIC` |
+| `VARCHAR2` | `VARCHAR` / `TEXT` | |
+| `DATE`（時刻含む） | `TIMESTAMP(0)` | |
+| `TIMESTAMP` | `TIMESTAMP` / `TIMESTAMPTZ` | D/E は `TIMESTAMPTZ` 推奨 |
+| `SYSDATE` / `SYSTIMESTAMP` | `now()` / `CURRENT_TIMESTAMP` | Informatica 内は共通関数 `sysdate` でも可 |
+| `SEQUENCE` | `BIGSERIAL` / `GENERATED ... AS IDENTITY` | `D_HIST.HIST_ID` は `BIGSERIAL` |
+| `MERGE` | `INSERT ... ON CONFLICT (pk) DO UPDATE` | UPSERT は Update Strategy（DD_INSERT/DD_UPDATE）で代替 |
+| 空文字 `''` | `NULL` | Oracle は `''`=`NULL`。PostgreSQL は別物。Informatica 側で明示変換 |
+| `NVL` / `DECODE` | `COALESCE` / `CASE` | SQL Override を書く場合に注意 |
+
+## 9. 実装チェックリスト
+
+* [ ] A/B/C に PK・`UPDATED_AT` を追加（無い場合）。削除検知は `COUNT(*)` 差分または論理削除フラグ化
+* [ ] Oracle に `ETL_WMARK`（水位管理表）を作成し、初期投入
+* [ ] `UPDATED_AT` にインデックスを作成
+* [ ] 変更チェック用ワークフロー `WF1_CHG_CHECK`（sqlplus + pmcmd）を作成
+* [ ] `m_build_D`（Joiner → Aggregator → Lookup(D) → Update Strategy）を作成、D の書込方式を UPSERT / 全再構築から選択
+* [ ] PostgreSQL に `D`・`D_HIST` とトリガー `trg_d_audit` を作成
+* [ ] セッション Pre-SQL で `app.batch_id` を設定（履歴トレース用）
+* [ ] Post-SQL で水位更新（成功時のみ水位が進むこと）
+* [ ] スケジュールを3時間毎に設定し、多重起動を禁止
+* [ ] 初回実行：水位が NULL のため全量一致＝変更ありと判定され、D が初期構築される（初回ロードを兼ねる）
+* [ ] 失敗時リトライ、Email 通知、実行ログ（スキップ/実行の記録）を整備
+
+## 10. 運用上の注意
+
+* **負荷**：3時間毎の水位チェックは 3 テーブルの `MAX`/`COUNT` のみで極めて軽い。ただし `UPDATED_AT` にインデックスが無いと全件スキャンになるため、**`UPDATED_AT` への索引作成は必須**。
+* **集計コスト**：A/B/C の結合・集約が重い場合は、Oracle 側のマテビュー（`REFRESH FAST ON DEMAND`）を検討。マテビュー更新自体も変更検知の対象にできる。
+* **履歴の肥大化**：`D_HIST` は3時間毎に増加するため、`CHG_TS` のインデックス＋定期的なアーカイブ/パーティション化を推奨。
+* **D の読み手**：D を他システムが読むタイミングに合わせて、UPSERT（パターン1）か一時テーブル swap（パターン2）かを選択する。
+
 

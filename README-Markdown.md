@@ -362,6 +362,16 @@ sequenceDiagram
     * （可选）SSO Server 可以通知其他已登录的应用进行登出（例如通过 back-channel logout）。
     * 系统 A 完成本地登出。
 
+
+## 折叠式
+
+<details>
+<summary><strong>怎样使用折叠式？</strong></summary>
+
+[Markdown記法 チートシート](https://qiita.com/Qiita/items/c686397e4a0f4f11683d)
+您可以使用 HTML 的详情折叠元素。 使用 `details` 标签将您想要显示为附加信息的内容包裹起来。然后，使用 `summary` 标签编写您想要显示为摘要的文本。 添加 `open` 属性将展开折叠部分。
+</details>
+
 # TODO
 
 - [x] Write a report [3]

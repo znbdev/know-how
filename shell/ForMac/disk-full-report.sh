@@ -1,6 +1,6 @@
 #!/bin/bash
-# disk-report.sh - Mac 磁盘空间扫描报告生成脚本
-# Usage: bash scripts/disk-report.sh [output-path]
+# disk-full-report.sh - Mac 磁盘空间扫描报告生成脚本
+# Usage: bash scripts/disk-full-report.sh [output-path]
 # Default output: ./disk-report-$(date +%F).md
 #
 # 策略：用少量批量 du 调用收集数据，避免逐目录 du。
@@ -52,7 +52,7 @@ cat > "$OUTPUT" <<- HEADER
 	# Mac 磁盘空间扫描报告
 
 	> 生成时间：$(date '+%Y-%m-%d %H:%M:%S')
-	> 扫描脚本：\`scripts/disk-report.sh\`
+	> 扫描脚本：\`scripts/disk-full-report.sh\`
 
 HEADER
 
@@ -349,7 +349,7 @@ CMDS
 w ""
 w "---"
 w ""
-w "*报告由 \`disk-report.sh\` 自动生成 | 清理前请确认数据重要性*"
+w "*报告由 \`disk-full-report.sh\` 自动生成 | 清理前请确认数据重要性*"
 
 echo ""
 echo "✅ 报告已生成：$OUTPUT"

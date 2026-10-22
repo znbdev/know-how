@@ -1,15 +1,15 @@
 #!/bin/bash
 # =============================================================================
-# pc_health_check_and_optimize.sh — 电脑健康检查与安全优化脚本 (v1.1 修复 macOS 兼容)
+# sys-health-check.sh — 电脑健康检查与安全优化脚本 (v1.1 修复 macOS 兼容)
 # 兼容: Linux (systemd) / macOS
 # 级别: L0 只读检查 + L1 安全清理(只删用户级缓存/日志/临时文件)
 #
 # 用法:
-#   bash pc_health_check_and_optimize.sh              # 默认: 健康检查 + 优化预演(只统计不删除)
-#   bash pc_health_check_and_optimize.sh --check      # 仅健康检查
-#   bash pc_health_check_and_optimize.sh --optimize   # 仅优化预演
-#   bash pc_health_check_and_optimize.sh --execute    # 实际执行清理(需配合 --optimize)
-#   bash pc_health_check_and_optimize.sh --help       # 帮助
+#   bash sys-health-check.sh              # 默认: 健康检查 + 优化预演(只统计不删除)
+#   bash sys-health-check.sh --check      # 仅健康检查
+#   bash sys-health-check.sh --optimize   # 仅优化预演
+#   bash sys-health-check.sh --execute    # 实际执行清理(需配合 --optimize)
+#   bash sys-health-check.sh --help       # 帮助
 #
 # 安全承诺:
 #   - 不使用 sudo,不碰系统目录 (/System /Library /usr /etc /var)

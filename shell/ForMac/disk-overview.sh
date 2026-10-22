@@ -1,10 +1,10 @@
 #!/bin/bash
-# disk-usage.sh - Mac 磁盘占用快速显示脚本
+# disk-overview.sh - Mac 磁盘占用快速显示脚本
 #
 # 用法:
-#   bash disk-usage.sh           # 显示整体占用 + 各卷使用率
-#   bash disk-usage.sh --top     # 追加显示顶层目录占用 Top N
-#   bash disk-usage.sh --deep    # 追加显示 ~/Library 等大目录明细
+#   bash disk-overview.sh           # 显示整体占用 + 各卷使用率
+#   bash disk-overview.sh --top     # 追加显示顶层目录占用 Top N
+#   bash disk-overview.sh --deep    # 追加显示 ~/Library 等大目录明细
 #
 # 只读脚本，不做任何删除操作。
 
